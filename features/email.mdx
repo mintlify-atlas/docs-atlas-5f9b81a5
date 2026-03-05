@@ -1,0 +1,223 @@
+---
+title: 'Email'
+description: 'Send transactional emails with HTML, plain text, or React components'
+---
+
+## Overview
+
+The Email resource enables you to send transactional emails with support for HTML, plain text, and React Email components. It includes features like CC, BCC, custom headers, and reply-to addresses.
+
+## Sending Emails
+
+Send an email with HTML content.
+
+<CodeGroup>
+```javascript HTML Email
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome to our service',
+  html: '<h1>Welcome!</h1><p>Thanks for signing up.</p>'
+});
+
+console.log(result.email_id);
+```
+
+```javascript Plain Text
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome to our service',
+  text: 'Welcome! Thanks for signing up.'
+});
+```
+
+```javascript HTML and Text
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome to our service',
+  html: '<h1>Welcome!</h1><p>Thanks for signing up.</p>',
+  text: 'Welcome! Thanks for signing up.'
+});
+```
+
+```javascript Multiple Recipients
+const result = await contiguity.email.send({
+  to: ['user1@example.com', 'user2@example.com', 'user3@example.com'],
+  from: 'noreply@yourdomain.com',
+  subject: 'Team Update',
+  html: '<p>Important team announcement...</p>'
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string | string[]" required>
+  Recipient email address(es). Can be a single email or an array of up to 10 emails
+</ParamField>
+
+<ParamField path="from" type="string" required>
+  Sender email address. Must be from a verified domain
+</ParamField>
+
+<ParamField path="subject" type="string" required>
+  Email subject line
+</ParamField>
+
+<ParamField path="html" type="string">
+  HTML content for the email body
+</ParamField>
+
+<ParamField path="text" type="string">
+  Plain text content for the email body
+</ParamField>
+
+<ParamField path="react" type="React.ReactElement">
+  React Email component for dynamic email rendering
+</ParamField>
+
+<ParamField path="reply_to" type="string">
+  Reply-to email address
+</ParamField>
+
+<ParamField path="cc" type="string | string[]">
+  CC recipient(s). Up to 10 addresses
+</ParamField>
+
+<ParamField path="bcc" type="string | string[]">
+  BCC recipient(s). Up to 10 addresses
+</ParamField>
+
+<ParamField path="headers" type="Record<string, string>">
+  Custom email headers
+</ParamField>
+
+<Note>
+  You must provide at least one of: `html`, `text`, or `react`
+</Note>
+
+### Returns
+
+```typescript
+{
+  email_id: string
+}
+```
+
+## Using React Email Components
+
+Send emails using React components for dynamic, type-safe email templates.
+
+```javascript
+import { render } from '@react-email/render';
+import { WelcomeEmail } from './emails/Welcome';
+
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome to our service',
+  react: <WelcomeEmail username="John" />
+});
+```
+
+<Note>
+  When using the `react` parameter, the SDK automatically renders the component to both HTML and plain text versions.
+</Note>
+
+## Advanced Examples
+
+### Email with CC and BCC
+
+```javascript
+const result = await contiguity.email.send({
+  to: 'customer@example.com',
+  from: 'support@yourdomain.com',
+  subject: 'Order Confirmation',
+  html: '<h1>Your order has been confirmed</h1>',
+  cc: 'manager@yourdomain.com',
+  bcc: ['archive@yourdomain.com', 'analytics@yourdomain.com']
+});
+```
+
+### Email with Custom Headers
+
+```javascript
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Monthly Newsletter',
+  html: '<p>Newsletter content...</p>',
+  headers: {
+    'X-Campaign-ID': 'newsletter-2024-03',
+    'X-Priority': '3',
+    'List-Unsubscribe': '<mailto:unsubscribe@yourdomain.com>'
+  }
+});
+```
+
+### Email with Reply-To
+
+```javascript
+const result = await contiguity.email.send({
+  to: 'customer@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Support Ticket Created',
+  html: '<p>Your support ticket has been created.</p>',
+  reply_to: 'support@yourdomain.com'
+});
+```
+
+## Deprecated Body Parameter
+
+<Warning>
+  The `body` parameter is deprecated. Use top-level `html`, `text`, or `react` instead.
+</Warning>
+
+```javascript
+// ❌ Deprecated
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Test',
+  body: {
+    html: '<p>Test email</p>'
+  }
+});
+
+// ✅ Use this instead
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Test',
+  html: '<p>Test email</p>'
+});
+```
+
+## Error Handling
+
+```javascript
+try {
+  const result = await contiguity.email.send({
+    to: 'user@example.com',
+    from: 'noreply@yourdomain.com',
+    subject: 'Test Email',
+    html: '<p>Hello!</p>'
+  });
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('Validation error:', error.errors);
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+## Best Practices
+
+- Always provide both HTML and plain text versions for better compatibility
+- Use verified sender domains to improve deliverability
+- Keep subject lines concise and meaningful
+- Limit recipient lists to 10 addresses per request
+- Use BCC for mass emails to protect recipient privacy

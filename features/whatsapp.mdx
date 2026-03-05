@@ -1,0 +1,397 @@
+---
+title: 'WhatsApp'
+description: 'Send WhatsApp messages with reactions and typing indicators'
+---
+
+## Overview
+
+The WhatsApp resource enables you to send WhatsApp messages with support for attachments, reactions, typing indicators, and automatic SMS fallback for non-WhatsApp users.
+
+## Sending Messages
+
+Send a WhatsApp message to a phone number.
+
+<CodeGroup>
+```javascript Basic Message
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'Hello from WhatsApp!',
+  from: '+0987654321'
+});
+
+console.log(result.message_id);
+```
+
+```javascript With Attachments
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'Check out this file!',
+  from: '+0987654321',
+  attachments: [
+    'https://example.com/document.pdf',
+    'https://example.com/image.jpg'
+  ]
+});
+```
+
+```javascript With SMS Fallback
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'This is a WhatsApp message with fallback',
+  from: '+0987654321',
+  fallback: {
+    when: ['whatsapp_unsupported', 'whatsapp_fails'],
+    from: '+1111111111' // Optional: different number for SMS
+  }
+});
+```
+
+```javascript Fast Track
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'Urgent notification',
+  from: '+0987654321',
+  fast_track: true
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number in E.164 format
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  The message content to send
+</ParamField>
+
+<ParamField path="from" type="string">
+  The sender's phone number. If not provided, a number will be automatically selected
+</ParamField>
+
+<ParamField path="attachments" type="string[]">
+  Array of attachment URLs (images, videos, documents, etc.)
+</ParamField>
+
+<ParamField path="fallback" type="object">
+  SMS fallback configuration for non-WhatsApp users
+</ParamField>
+
+<ParamField path="fallback.when" type="array" required>
+  Array of conditions triggering fallback: `whatsapp_unsupported` or `whatsapp_fails`
+</ParamField>
+
+<ParamField path="fallback.from" type="string">
+  Optional different phone number to use for SMS fallback
+</ParamField>
+
+<ParamField path="fast_track" type="boolean">
+  Enable fast-track delivery for time-sensitive messages
+</ParamField>
+
+### Returns
+
+```typescript
+{
+  message_id: string
+}
+```
+
+## Replying to Messages
+
+Reply to an incoming WhatsApp webhook. This method automatically extracts `to` and `from` fields from the webhook event.
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+// Inside your webhook handler
+app.post('/webhook', async (req, res) => {
+  const event = req.body;
+  
+  const result = await contiguity.whatsapp.reply(event, {
+    message: 'Thanks for your WhatsApp message!'
+  });
+  
+  res.json({ success: true });
+});
+```
+
+### Parameters
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The incoming webhook event object containing `data.to` and `data.from`
+</ParamField>
+
+<ParamField path="params" type="Omit<WhatsappSendParams, 'to' | 'from'>" required>
+  Send parameters excluding `to` and `from` (automatically populated from event)
+</ParamField>
+
+## Typing Indicators
+
+Show typing indicators to let users know you're composing a response.
+
+<CodeGroup>
+```javascript Start Typing
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  action: 'start',
+  from: '+0987654321'
+});
+```
+
+```javascript Stop Typing
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  action: 'stop',
+  from: '+0987654321'
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="action" type="'start' | 'stop'" required>
+  Start or stop the typing indicator
+</ParamField>
+
+<ParamField path="from" type="string">
+  The sender's phone number
+</ParamField>
+
+## Reactions
+
+Add or remove reactions (emojis) to WhatsApp messages.
+
+<CodeGroup>
+```javascript Add Reaction
+const result = await contiguity.whatsapp.react('add', {
+  to: '+1234567890',
+  reaction: '❤️',
+  message: 'Original message text'
+});
+```
+
+```javascript Remove Reaction
+const result = await contiguity.whatsapp.react('remove', {
+  to: '+1234567890',
+  reaction: '❤️',
+  message: 'Original message text'
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction
+</ParamField>
+
+<ParamField path="params" type="object" required>
+  Reaction parameters
+</ParamField>
+
+<ParamField path="params.to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="params.reaction" type="string">
+  The emoji reaction to add or remove
+</ParamField>
+
+<ParamField path="params.message" type="string">
+  The original message text to react to
+</ParamField>
+
+<Note>
+  At least one of `reaction` or `message` must be provided
+</Note>
+
+## Complete Conversation Example
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+app.post('/webhook/whatsapp', async (req, res) => {
+  const event = req.body;
+  
+  // Show typing indicator
+  await contiguity.whatsapp.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'start'
+  });
+  
+  // Simulate processing time
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Stop typing indicator
+  await contiguity.whatsapp.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'stop'
+  });
+  
+  // Send reply
+  await contiguity.whatsapp.reply(event, {
+    message: 'Thanks for your message! How can I help?'
+  });
+  
+  res.json({ success: true });
+});
+```
+
+## Business Use Case Examples
+
+### Order Confirmation
+
+```javascript
+async function sendOrderConfirmation(phoneNumber, orderDetails) {
+  const result = await contiguity.whatsapp.send({
+    to: phoneNumber,
+    message: `✅ Order Confirmed!\n\nOrder #${orderDetails.id}\nTotal: $${orderDetails.total}\nEstimated delivery: ${orderDetails.delivery_date}`,
+    from: '+1234567890',
+    attachments: [orderDetails.receipt_url]
+  });
+  
+  return result.message_id;
+}
+```
+
+### Customer Support
+
+```javascript
+app.post('/webhook/whatsapp', async (req, res) => {
+  const event = req.body;
+  const message = event.data.message.toLowerCase();
+  
+  // Show typing
+  await contiguity.whatsapp.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'start'
+  });
+  
+  // Route to appropriate response
+  let response;
+  if (message.includes('order status')) {
+    response = 'Let me check your order status...';
+  } else if (message.includes('help')) {
+    response = 'How can I assist you today?';
+  } else {
+    response = 'I\'ve received your message. A support agent will respond shortly.';
+  }
+  
+  await contiguity.whatsapp.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'stop'
+  });
+  
+  await contiguity.whatsapp.reply(event, {
+    message: response
+  });
+  
+  res.json({ success: true });
+});
+```
+
+### Marketing Campaigns
+
+```javascript
+async function sendPromotion(subscribers) {
+  const results = await Promise.all(
+    subscribers.map(phone => 
+      contiguity.whatsapp.send({
+        to: phone,
+        message: '🎉 Special Offer! Get 20% off your next purchase. Use code: SAVE20',
+        from: '+1234567890',
+        fallback: {
+          when: ['whatsapp_unsupported'],
+          from: '+0987654321' // SMS fallback
+        }
+      })
+    )
+  );
+  
+  return results;
+}
+```
+
+### Appointment Reminders
+
+```javascript
+async function sendAppointmentReminder(appointment) {
+  await contiguity.whatsapp.send({
+    to: appointment.customer_phone,
+    message: `📅 Reminder: You have an appointment tomorrow at ${appointment.time}\n\nLocation: ${appointment.location}\nWith: ${appointment.provider}`,
+    from: '+1234567890',
+    attachments: [appointment.calendar_link]
+  });
+}
+```
+
+## Fallback Strategy Example
+
+```javascript
+// Try WhatsApp first, fall back to SMS if unavailable
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'This works on WhatsApp or SMS',
+  from: '+0987654321',
+  fallback: {
+    when: ['whatsapp_unsupported', 'whatsapp_fails']
+  }
+});
+
+// Use different number for SMS fallback
+const result2 = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  message: 'Premium message on WhatsApp, standard on SMS',
+  from: '+0987654321', // WhatsApp number
+  fallback: {
+    when: ['whatsapp_unsupported'],
+    from: '+1111111111' // Different SMS number
+  }
+});
+```
+
+## Error Handling
+
+```javascript
+try {
+  const result = await contiguity.whatsapp.send({
+    to: '+1234567890',
+    message: 'Hello!'
+  });
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('Validation error:', error.errors);
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+<Note>
+  All methods validate input parameters using Zod schemas and throw validation errors for invalid input.
+</Note>
+
+## Best Practices
+
+- Always configure fallback for better delivery rates
+- Use typing indicators for natural conversation flow
+- Keep messages concise and formatted for mobile reading
+- Use emojis to make messages more engaging
+- Respect user preferences and opt-out requests
+- Test attachment file sizes and formats
+- Use fast_track only for truly urgent messages
+- Implement webhook handlers for two-way conversations

@@ -1,0 +1,420 @@
+---
+title: 'TypeScript Support'
+description: 'Full TypeScript support with comprehensive type definitions'
+---
+
+## Overview
+
+The Contiguity SDK is written in TypeScript and provides complete type definitions for all methods, parameters, and responses. This gives you autocompletion, type checking, and inline documentation in your IDE.
+
+## Exported Types
+
+The SDK exports all types you need for type-safe integration:
+
+```typescript
+import {
+  Contiguity,
+  ContiguityConfig,
+  ContiguityError,
+  ContiguityErrorData,
+  TextSendParams,
+  TextReactParams,
+  EmailSendParams,
+  ImessageSendParams,
+  ImessageTypingParams,
+  ImessageReactParams,
+  ImessageReadParams,
+  WhatsappSendParams,
+  WhatsappTypingParams,
+  WhatsappReactParams,
+  OtpNewParams,
+  OtpVerifyParams,
+  OtpResendParams,
+  OtpReverseInitiateParams,
+  ConversationHistoryParams,
+  WebhookEventBase,
+  WebhookEventType,
+  IncomingMessageData,
+  TextIncomingData,
+  ImessageIncomingData,
+  TextDeliveryData,
+  ResponseMetadata,
+  verifyWebhookSignature,
+  parseWebhookPayload,
+  renderReactEmail
+} from '@contiguity/sdk';
+```
+
+## Type Safety Benefits
+
+### Parameter Validation
+
+TypeScript catches invalid parameters at compile time:
+
+```typescript
+import { Contiguity, TextSendParams } from '@contiguity/sdk';
+
+const client = new Contiguity();
+
+// ✅ Valid - all required fields provided
+const validParams: TextSendParams = {
+  to: '+15551234567',
+  message: 'Hello!'
+};
+
+await client.text.send(validParams);
+
+// ❌ Type error - missing required 'message' field
+const invalidParams: TextSendParams = {
+  to: '+15551234567'
+}; // Error: Property 'message' is missing
+```
+
+### IDE Autocompletion
+
+Get intelligent suggestions as you type:
+
+```typescript
+import { ImessageReactParams } from '@contiguity/sdk';
+
+const params: ImessageReactParams = {
+  to: '+15551234567',
+  from: '+15559876543',
+  tapback: 'l', // IDE suggests: 'love' | 'like' | 'dislike' | 'laugh' | 'emphasize' | 'question'
+  message: 'Original message text'
+};
+```
+
+### Response Types
+
+All API responses are fully typed with metadata:
+
+```typescript
+const response = await client.text.send({
+  to: '+15551234567',
+  message: 'Hello!'
+});
+
+// response type:
+// {
+//   message_id: string;
+//   metadata: {
+//     id: string;
+//     timestamp: string;
+//     api_version: string;
+//     object: string;
+//   }
+// }
+
+console.log(response.message_id);  // string
+console.log(response.metadata.timestamp);  // string
+```
+
+## Common Types
+
+### Text Message Parameters
+
+```typescript
+interface TextSendParams {
+  to: string;
+  message: string;
+  from?: string;
+  attachments?: string[];  // Max 3 URLs
+  fast_track?: boolean;
+}
+
+interface TextReactParams {
+  message_id?: string | null;
+  to?: string | null;
+  from?: string | null;
+  message?: string | null;
+  reaction: 'love' | 'thumbsup' | 'thumbsdown' | 'haha' | 'emphasized' | 'questioned';
+}
+```
+
+### Email Parameters
+
+```typescript
+interface EmailSendParams {
+  to: string | string[];  // Max 10 recipients
+  from: string;
+  subject: string;
+  html?: string | null;
+  text?: string | null;
+  react?: unknown;  // React Email component
+  reply_to?: string | null;
+  cc?: string | string[] | null;  // Max 10
+  bcc?: string | string[] | null;  // Max 10
+  headers?: Record<string, string> | null;
+}
+```
+
+### iMessage Parameters
+
+```typescript
+interface ImessageSendParams {
+  to: string;
+  message: string;
+  from?: string;
+  fallback?: {
+    when: ('imessage_unsupported' | 'imessage_fails')[];
+    from?: string;
+  };
+  attachments?: string[];
+  fast_track?: boolean;
+}
+
+interface ImessageTypingParams {
+  to: string;
+  action: 'start' | 'stop';
+  from?: string;
+}
+
+interface ImessageReactParams {
+  to: string;
+  from: string;
+  tapback: 'love' | 'like' | 'dislike' | 'laugh' | 'emphasize' | 'question';
+  message: string;
+}
+
+interface ImessageReadParams {
+  to: string;
+  from: string;
+}
+```
+
+### WhatsApp Parameters
+
+```typescript
+interface WhatsappSendParams {
+  to: string;
+  message: string;
+  from?: string;
+}
+
+interface WhatsappTypingParams {
+  to: string;
+  action: 'start' | 'stop';
+  from?: string;
+}
+
+interface WhatsappReactParams {
+  to: string;
+  from: string;
+  emoji: string;
+  message_id: string;
+}
+```
+
+### OTP Parameters
+
+```typescript
+interface OtpNewParams {
+  to: string;
+  code_length?: number;
+  expiration_minutes?: number;
+  from?: string;
+  template?: string;
+}
+
+interface OtpVerifyParams {
+  to: string;
+  code: string;
+}
+
+interface OtpResendParams {
+  to: string;
+  from?: string;
+  template?: string;
+}
+
+interface OtpReverseInitiateParams {
+  to: string;
+  from?: string;
+}
+```
+
+### Webhook Types
+
+```typescript
+type WebhookEventType =
+  | 'text.incoming.sms'
+  | 'text.incoming.mms'
+  | 'text.delivery.confirmed'
+  | 'text.delivery.failed'
+  | 'imessage.incoming'
+  | 'numbers.substitution'
+  | 'otp.reverse.verified'
+  | 'email.incoming'
+  | 'identity.verification_session.started'
+  | 'identity.verification_session.processing'
+  | 'identity.verification_session.verified'
+  | 'identity.verification_session.failed'
+  | 'identity.verification_session.requires_input'
+  | 'identity.verification_session.manually_approved'
+  | 'identity.verification_session.manually_denied'
+  | 'identity.verification_report.generated';
+
+interface WebhookEventBase {
+  id: string;
+  type: WebhookEventType;
+  timestamp: number;
+  api_version: string;
+  data: Record<string, unknown>;
+}
+
+interface TextIncomingData {
+  from: string;
+  to: string;
+  body: string;
+  timestamp: number;
+  attachments?: Array<{
+    url: string;
+    mime: string;
+    filename: string;
+  }>;
+}
+
+interface ImessageIncomingData {
+  from: string;
+  to: string;
+  body: string;
+  timestamp: number;
+  attachments?: Array<{
+    url?: string;
+    mime?: string;
+    filename?: string;
+  }>;
+}
+
+interface TextDeliveryData {
+  from: string;
+  to: string;
+  message_id: string;
+  timestamp: number;
+  error?: string;
+}
+```
+
+## Type-Safe Webhook Handling
+
+Use type narrowing for webhook events:
+
+```typescript
+import { 
+  WebhookEventBase, 
+  TextIncomingData,
+  ImessageIncomingData 
+} from '@contiguity/sdk';
+
+function handleWebhook(event: WebhookEventBase) {
+  switch (event.type) {
+    case 'text.incoming.sms':
+    case 'text.incoming.mms': {
+      const data = event.data as TextIncomingData;
+      console.log(`Text from ${data.from}: ${data.body}`);
+      break;
+    }
+    
+    case 'imessage.incoming': {
+      const data = event.data as ImessageIncomingData;
+      console.log(`iMessage from ${data.from}: ${data.body}`);
+      break;
+    }
+    
+    case 'text.delivery.confirmed':
+      console.log('Message delivered');
+      break;
+      
+    default:
+      console.log('Unknown event type:', event.type);
+  }
+}
+```
+
+## Configuration Types
+
+```typescript
+interface ContiguityConfig {
+  debug?: boolean;  // Enable debug logging
+}
+
+const client = new Contiguity(undefined, {
+  debug: process.env.NODE_ENV === 'development'
+});
+```
+
+## Error Types
+
+```typescript
+interface ContiguityErrorData {
+  agreement_url?: string;
+}
+
+class ContiguityError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly code?: string,
+    public readonly data?: ContiguityErrorData
+  );
+}
+```
+
+## Type-Safe Helper Functions
+
+### Reply to Webhooks
+
+```typescript
+import { WebhookEventBase, TextSendParams } from '@contiguity/sdk';
+
+async function handleIncoming(event: WebhookEventBase) {
+  if (event.type === 'text.incoming.sms') {
+    // Type-safe reply - to/from are prefilled
+    await client.text.reply(event, {
+      message: 'Thanks for your message!'
+    });
+  }
+}
+```
+
+### Conversation History
+
+```typescript
+import { ConversationHistoryParams } from '@contiguity/sdk';
+
+const params: ConversationHistoryParams = {
+  to: '+15551234567',
+  from: '+15559876543',
+  limit: 50  // Optional, defaults to 20
+};
+
+const history = await client.text.history(params);
+```
+
+## Response Metadata
+
+All API responses include metadata:
+
+```typescript
+interface ResponseMetadata {
+  id: string;
+  timestamp: string;
+  api_version: string;
+  object: string;
+}
+
+const response = await client.email.send(params);
+console.log(response.metadata.id);  // Unique request ID
+console.log(response.metadata.api_version);  // API version used
+```
+
+<Tip>
+Use `satisfies` keyword (TypeScript 4.9+) for better inference:
+```typescript
+const params = {
+  to: '+15551234567',
+  message: 'Hello!'
+} satisfies TextSendParams;
+```
+</Tip>

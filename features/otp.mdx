@@ -1,0 +1,298 @@
+---
+title: 'OTP (One-Time Passwords)'
+description: 'Generate and verify one-time passwords for authentication'
+---
+
+## Overview
+
+The OTP resource provides methods for generating, verifying, and resending one-time passwords (OTPs) for user authentication. It supports both standard OTP flows and reverse OTP verification.
+
+## Standard OTP Flow
+
+### Creating a New OTP
+
+Generate and send a new OTP to a user's phone number.
+
+```javascript
+const result = await contiguity.otp.new({
+  to: '+1234567890',
+  language: 'en',
+  name: 'YourApp'
+});
+
+console.log(result.otp_id);
+```
+
+#### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number in E.164 format
+</ParamField>
+
+<ParamField path="language" type="string" required>
+  Language code for the OTP message (e.g., 'en', 'es', 'fr')
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Your application or service name to be included in the message
+</ParamField>
+
+#### Returns
+
+```typescript
+{
+  otp_id: string
+}
+```
+
+### Verifying an OTP
+
+Verify the OTP code entered by the user.
+
+```javascript
+const result = await contiguity.otp.verify({
+  otp_id: 'otp_123456',
+  otp: '123456'
+});
+
+if (result.verified) {
+  console.log('OTP verified successfully!');
+} else {
+  console.log('Invalid OTP');
+}
+```
+
+#### Parameters
+
+<ParamField path="otp_id" type="string" required>
+  The OTP ID returned from the `new()` method
+</ParamField>
+
+<ParamField path="otp" type="string" required>
+  The OTP code entered by the user
+</ParamField>
+
+#### Returns
+
+```typescript
+{
+  verified: boolean
+}
+```
+
+### Resending an OTP
+
+Resend the OTP if the user didn't receive it.
+
+```javascript
+const result = await contiguity.otp.resend({
+  otp_id: 'otp_123456'
+});
+
+if (result.resent) {
+  console.log('OTP resent successfully');
+}
+```
+
+#### Parameters
+
+<ParamField path="otp_id" type="string" required>
+  The OTP ID returned from the `new()` method
+</ParamField>
+
+#### Returns
+
+```typescript
+{
+  resent: boolean
+}
+```
+
+## Reverse OTP Flow
+
+Reverse OTP allows users to verify their identity by initiating a call or text from their phone, rather than receiving a code.
+
+### Initiating Reverse OTP
+
+Start a reverse OTP verification flow.
+
+```javascript
+const result = await contiguity.otp.reverse.initiate({
+  number: '+1234567890',
+  factor: 'MyApp2024',
+  language: 'en',
+  success_url: 'https://yourapp.com/verify/success'
+});
+
+console.log(result.otp_id);
+```
+
+#### Parameters
+
+<ParamField path="number" type="string" required>
+  The phone number to verify in E.164 format
+</ParamField>
+
+<ParamField path="factor" type="string">
+  A unique identifier for this verification attempt (max 16 characters)
+</ParamField>
+
+<ParamField path="to" type="string">
+  The destination number to call or text
+</ParamField>
+
+<ParamField path="language" type="string">
+  Language code for the verification message
+</ParamField>
+
+<ParamField path="success_url" type="string">
+  Webhook URL to call upon successful verification
+</ParamField>
+
+### Checking Reverse OTP Status
+
+Check if the reverse OTP has been verified.
+
+```javascript
+const result = await contiguity.otp.reverse.verify('otp_123456');
+
+if (result.verified) {
+  console.log('User verified successfully!');
+}
+```
+
+#### Parameters
+
+<ParamField path="otp_id" type="string" required>
+  The OTP ID returned from `reverse.initiate()`
+</ParamField>
+
+### Canceling Reverse OTP
+
+Cancel an ongoing reverse OTP verification.
+
+```javascript
+const result = await contiguity.otp.reverse.cancel('otp_123456');
+
+console.log('Verification canceled');
+```
+
+#### Parameters
+
+<ParamField path="otp_id" type="string" required>
+  The OTP ID to cancel
+</ParamField>
+
+## Complete Authentication Example
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+// Step 1: User enters phone number
+const phoneNumber = '+1234567890';
+
+// Step 2: Generate and send OTP
+const { otp_id } = await contiguity.otp.new({
+  to: phoneNumber,
+  language: 'en',
+  name: 'MyApp'
+});
+
+// Store otp_id in session
+session.otp_id = otp_id;
+
+// Step 3: User enters OTP code
+const userEnteredCode = '123456';
+
+// Step 4: Verify OTP
+const { verified } = await contiguity.otp.verify({
+  otp_id: session.otp_id,
+  otp: userEnteredCode
+});
+
+if (verified) {
+  // Log user in
+  session.authenticated = true;
+  console.log('User authenticated successfully');
+} else {
+  console.log('Invalid OTP code');
+}
+```
+
+## Resend Flow Example
+
+```javascript
+// User clicks "Resend OTP" button
+app.post('/resend-otp', async (req, res) => {
+  const { otp_id } = req.session;
+  
+  const result = await contiguity.otp.resend({ otp_id });
+  
+  if (result.resent) {
+    res.json({ message: 'OTP resent successfully' });
+  } else {
+    res.status(400).json({ error: 'Failed to resend OTP' });
+  }
+});
+```
+
+## Reverse OTP Example
+
+```javascript
+// Step 1: Initiate reverse OTP
+const { otp_id } = await contiguity.otp.reverse.initiate({
+  number: '+1234567890',
+  factor: 'MyApp2024',
+  language: 'en',
+  success_url: 'https://myapp.com/webhook/otp-verified'
+});
+
+// Display instructions to user:
+// "Please call or text [number] from your phone to verify"
+
+// Step 2: Poll for verification status
+const checkInterval = setInterval(async () => {
+  const result = await contiguity.otp.reverse.verify(otp_id);
+  
+  if (result.verified) {
+    clearInterval(checkInterval);
+    console.log('User verified!');
+    // Proceed with authentication
+  }
+}, 2000);
+
+// Step 3: Cancel after timeout
+setTimeout(async () => {
+  clearInterval(checkInterval);
+  await contiguity.otp.reverse.cancel(otp_id);
+  console.log('Verification timed out');
+}, 300000); // 5 minutes
+```
+
+## Error Handling
+
+```javascript
+try {
+  const result = await contiguity.otp.verify({
+    otp_id: 'otp_123456',
+    otp: '123456'
+  });
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('Validation error:', error.errors);
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+## Best Practices
+
+- Store the `otp_id` securely in the user's session
+- Implement rate limiting on OTP generation to prevent abuse
+- Set appropriate expiration times for OTPs (typically 5-10 minutes)
+- Limit the number of verification attempts per OTP
+- Use reverse OTP for higher security requirements
+- Always handle verification failures gracefully

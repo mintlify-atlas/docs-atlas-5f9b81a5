@@ -1,0 +1,137 @@
+---
+title: "Email Resource"
+description: "Send emails with HTML, text, and React support"
+---
+
+## EmailResource
+
+The `email` resource provides methods for sending transactional emails with support for HTML, plain text, and React components.
+
+### send()
+
+```typescript
+await contiguity.email.send(params: EmailSendParams): Promise<{ email_id: string }>
+```
+
+Send an email message.
+
+<ParamField path="params" type="EmailSendParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string | string[]" required>
+      Recipient email address(es). Can be a single string or an array of up to 10 email addresses.
+    </ParamField>
+    
+    <ParamField path="from" type="string" required>
+      Sender email address. Must be from a verified domain.
+    </ParamField>
+    
+    <ParamField path="subject" type="string" required>
+      Email subject line.
+    </ParamField>
+    
+    <ParamField path="html" type="string" optional>
+      HTML content of the email. Either `html`, `text`, or `react` must be provided.
+    </ParamField>
+    
+    <ParamField path="text" type="string" optional>
+      Plain text content of the email. Either `html`, `text`, or `react` must be provided.
+    </ParamField>
+    
+    <ParamField path="react" type="React.ReactElement" optional>
+      React component to render as the email body. The SDK will automatically render it to HTML and text. Either `html`, `text`, or `react` must be provided.
+    </ParamField>
+    
+    <ParamField path="reply_to" type="string" optional>
+      Reply-to email address.
+    </ParamField>
+    
+    <ParamField path="cc" type="string | string[]" optional>
+      CC recipient(s). Can be a single string or an array of up to 10 email addresses.
+    </ParamField>
+    
+    <ParamField path="bcc" type="string | string[]" optional>
+      BCC recipient(s). Can be a single string or an array of up to 10 email addresses.
+    </ParamField>
+    
+    <ParamField path="headers" type="Record<string, string>" optional>
+      Custom email headers.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="email_id" type="string">
+  Unique identifier for the sent email.
+</ResponseField>
+
+### Examples
+
+#### Send HTML email
+
+```typescript
+const result = await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome to our service',
+  html: '<h1>Welcome!</h1><p>Thanks for signing up.</p>',
+  text: 'Welcome! Thanks for signing up.'
+});
+
+console.log(result.email_id); // "email_..."
+```
+
+#### Send to multiple recipients
+
+```typescript
+await contiguity.email.send({
+  to: ['user1@example.com', 'user2@example.com'],
+  from: 'noreply@yourdomain.com',
+  subject: 'Team Update',
+  html: '<p>Here is your team update.</p>',
+  cc: 'manager@example.com',
+  bcc: ['archive@example.com']
+});
+```
+
+#### Send with React component
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+import React from 'react';
+
+const EmailTemplate = ({ name }: { name: string }) => (
+  <div>
+    <h1>Hello, {name}!</h1>
+    <p>Thanks for joining our service.</p>
+  </div>
+);
+
+await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Welcome!',
+  react: <EmailTemplate name="John" />
+});
+```
+
+#### Send with custom headers and reply-to
+
+```typescript
+await contiguity.email.send({
+  to: 'user@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Support Request Received',
+  html: '<p>We received your request and will respond shortly.</p>',
+  reply_to: 'support@yourdomain.com',
+  headers: {
+    'X-Priority': '1',
+    'X-Category': 'support'
+  }
+});
+```
+
+### Notes
+
+- At least one of `html`, `text`, or `react` must be provided
+- When using `react`, the SDK automatically renders both HTML and plain text versions
+- The sender domain must be verified in your Contiguity account
+- Maximum 10 recipients per email (combined across `to`, `cc`, and `bcc`)

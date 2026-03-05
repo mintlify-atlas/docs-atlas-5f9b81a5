@@ -1,0 +1,86 @@
+---
+title: Introduction
+description: Welcome to the Contiguity JavaScript SDK - send SMS, iMessage, WhatsApp, emails, and OTP codes with a unified API
+---
+
+## Overview
+
+The Contiguity JavaScript SDK is the official TypeScript/JavaScript library for interacting with Contiguity's communication APIs. Built with TypeScript, it provides a type-safe and intuitive interface for sending messages across multiple channels from your Node.js applications.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="SMS/Text Messages" icon="message">
+    Send text messages, reactions, and retrieve conversation history
+  </Card>
+  <Card title="Email" icon="envelope">
+    Send emails with HTML, plain text, or React Email templates
+  </Card>
+  <Card title="OTP/Verification" icon="key">
+    Generate and verify one-time passwords for authentication
+  </Card>
+  <Card title="iMessage" icon="apple">
+    Send iMessages with typing indicators, reactions, and read receipts
+  </Card>
+  <Card title="WhatsApp" icon="whatsapp">
+    Send WhatsApp messages with rich formatting and reactions
+  </Card>
+  <Card title="Webhooks" icon="webhook">
+    Handle incoming messages and delivery updates securely
+  </Card>
+</CardGroup>
+
+## What You Can Build
+
+With the Contiguity JavaScript SDK, you can build:
+
+- **Authentication systems** with OTP verification via SMS or email
+- **Notification services** that reach users on their preferred channels
+- **Marketing campaigns** with personalized messages across SMS, email, and WhatsApp
+- **Customer support** with two-way messaging and conversation history
+- **Alerts and reminders** for time-sensitive information
+- **Conversational applications** with webhook handlers for incoming messages
+
+## Requirements
+
+- Node.js 18 or higher
+- A Contiguity account with an API token (get yours at [console.contiguity.com](https://console.contiguity.com))
+
+## Quick Example
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Send a text message
+await contiguity.text.send({
+  to: "+1234567890",
+  message: "Hello from Contiguity!"
+});
+
+// Send an email
+await contiguity.email.send({
+  to: "user@example.com",
+  from: "Your App <no-reply@yourapp.com>",
+  subject: "Welcome!",
+  text: "Welcome to our platform!"
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get started in 5 minutes with your first API call
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed setup and configuration guide
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/client">
+    Explore all available methods and parameters
+  </Card>
+  <Card title="Core Features" icon="book" href="/features/text">
+    Learn from real-world code examples
+  </Card>
+</CardGroup>

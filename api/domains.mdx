@@ -1,0 +1,169 @@
+---
+title: "Domains Resource"
+description: "Manage email domains for sending"
+---
+
+## DomainsResource
+
+The `domains` resource provides methods for registering and managing email domains for sending transactional emails.
+
+### list()
+
+```typescript
+await contiguity.domains.list(): Promise<any>
+```
+
+Get a list of all domains registered to your account.
+
+```typescript
+const domains = await contiguity.domains.list();
+console.log(domains);
+```
+
+### get()
+
+```typescript
+await contiguity.domains.get(domain: string): Promise<any>
+```
+
+Get information about a specific domain.
+
+<ParamField path="domain" type="string" required>
+  The domain name (e.g., `example.com`).
+</ParamField>
+
+```typescript
+const info = await contiguity.domains.get('example.com');
+console.log(info);
+```
+
+### register()
+
+```typescript
+await contiguity.domains.register(
+  domain: string,
+  options?: DomainsRegisterOptions
+): Promise<any>
+```
+
+Register a new domain for sending emails.
+
+<ParamField path="domain" type="string" required>
+  The domain name to register (e.g., `example.com`).
+</ParamField>
+
+<ParamField path="options" type="DomainsRegisterOptions" optional>
+  <Expandable title="properties">
+    <ParamField path="region" type="string" optional>
+      The region where emails will be sent from (e.g., `us-east-1`, `eu-west-1`).
+    </ParamField>
+    
+    <ParamField path="custom_return_path" type="string" optional>
+      Custom return path domain for bounce handling.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Register with default settings
+const result = await contiguity.domains.register('example.com');
+
+// Register with custom settings
+const result = await contiguity.domains.register('example.com', {
+  region: 'us-east-1',
+  custom_return_path: 'bounce.example.com'
+});
+
+console.log(result);
+```
+
+### delete()
+
+```typescript
+await contiguity.domains.delete(domain: string): Promise<any>
+```
+
+Delete a domain from your account.
+
+<ParamField path="domain" type="string" required>
+  The domain name to delete.
+</ParamField>
+
+```typescript
+await contiguity.domains.delete('example.com');
+console.log('Domain deleted');
+```
+
+### Complete Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Step 1: Register a domain
+const domain = 'example.com';
+const registration = await contiguity.domains.register(domain, {
+  region: 'us-east-1'
+});
+console.log('Registration:', registration);
+
+// Step 2: Get DNS records to verify domain ownership
+const domainInfo = await contiguity.domains.get(domain);
+console.log('DNS records to add:', domainInfo.dns_records);
+
+// After adding DNS records and waiting for verification...
+
+// Step 3: Send an email from the verified domain
+await contiguity.email.send({
+  from: `noreply@${domain}`,
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  html: '<p>Thanks for signing up!</p>'
+});
+
+// Step 4: List all your domains
+const allDomains = await contiguity.domains.list();
+console.log('All domains:', allDomains);
+
+// Step 5: Delete a domain if needed
+await contiguity.domains.delete(domain);
+console.log('Domain deleted');
+```
+
+### Domain Verification
+
+After registering a domain, you'll need to add DNS records to verify ownership:
+
+1. Call `register()` to initiate domain registration
+2. Call `get()` to retrieve the required DNS records
+3. Add the DNS records to your domain's DNS configuration
+4. Wait for DNS propagation (typically 5-30 minutes)
+5. Once verified, you can send emails from that domain
+
+```typescript
+const domain = 'example.com';
+
+// Register domain
+await contiguity.domains.register(domain);
+
+// Get DNS records
+const info = await contiguity.domains.get(domain);
+console.log('Add these DNS records:');
+console.log(info.dns_records);
+
+// After adding DNS records, check verification status
+const status = await contiguity.domains.get(domain);
+if (status.verified) {
+  console.log('Domain verified! Ready to send emails.');
+} else {
+  console.log('Domain not yet verified. Please check DNS records.');
+}
+```
+
+### Notes
+
+- You must verify domain ownership via DNS records before sending emails
+- Multiple domains can be registered to a single account
+- Custom return paths are useful for handling bounce notifications
+- Region selection affects email sending latency and compliance

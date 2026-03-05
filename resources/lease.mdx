@@ -1,0 +1,186 @@
+---
+title: "Phone Number Leasing"
+description: "Lease and manage phone numbers for sending and receiving messages"
+---
+
+## Overview
+
+The Lease resource allows you to rent phone numbers for sending and receiving messages. Leased numbers can be used as the `from` parameter in text messages, iMessages, and other communications.
+
+## Quick Example
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Find available numbers
+const available = await contiguity.lease.available();
+
+// Lease a number
+const lease = await contiguity.lease.create('+1234567890');
+
+// Send a message from your leased number
+await contiguity.text.send({
+  from: '+1234567890',
+  to: '+19876543210',
+  message: 'Hello from my leased number!'
+});
+```
+
+## Finding Available Numbers
+
+List all phone numbers available for leasing:
+
+```typescript
+const numbers = await contiguity.lease.available();
+
+console.log('Available numbers:', numbers);
+```
+
+Check if a specific number is available:
+
+```typescript
+const info = await contiguity.lease.get('+1234567890');
+
+if (info.available) {
+  console.log('Number is available for leasing');
+}
+```
+
+## Leasing a Number
+
+Create a lease for a specific phone number:
+
+```typescript
+const lease = await contiguity.lease.create('+1234567890');
+
+console.log('Leased number:', lease);
+```
+
+You can optionally specify lease options:
+
+```typescript
+const lease = await contiguity.lease.create('+1234567890', {
+  // Optional configuration
+});
+```
+
+<Note>
+  Once leased, the number is exclusively yours until you terminate the lease.
+</Note>
+
+## Managing Leased Numbers
+
+### List Your Leased Numbers
+
+Get all numbers currently leased to your account:
+
+```typescript
+const leasedNumbers = await contiguity.lease.leased();
+
+console.log('My leased numbers:', leasedNumbers);
+```
+
+### Get Lease Details
+
+Retrieve detailed information about a specific lease:
+
+```typescript
+const details = await contiguity.lease.details('+1234567890');
+
+console.log('Lease details:', details);
+```
+
+### Terminate a Lease
+
+Release a phone number when you no longer need it:
+
+```typescript
+await contiguity.lease.terminate('+1234567890');
+
+console.log('Lease terminated');
+```
+
+<Warning>
+  Once terminated, the number will no longer be associated with your account and cannot be used to send messages.
+</Warning>
+
+## Complete Workflow
+
+Here's a complete example of the leasing lifecycle:
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+async function managePhoneNumber() {
+  // 1. Find available numbers
+  const available = await contiguity.lease.available();
+  const number = available[0];
+  
+  // 2. Lease a number
+  console.log(`Leasing number: ${number}`);
+  await contiguity.lease.create(number);
+  
+  // 3. Use the number
+  await contiguity.text.send({
+    from: number,
+    to: '+19876543210',
+    message: 'This message is from my leased number!'
+  });
+  
+  // 4. Check lease details
+  const details = await contiguity.lease.details(number);
+  console.log('Lease details:', details);
+  
+  // 5. List all leased numbers
+  const leased = await contiguity.lease.leased();
+  console.log('All leased numbers:', leased);
+  
+  // 6. Terminate when done (optional)
+  // await contiguity.lease.terminate(number);
+}
+
+managePhoneNumber();
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Dedicated Support Lines" icon="headset">
+    Lease numbers for customer support to maintain consistent contact information.
+  </Card>
+  <Card title="Marketing Campaigns" icon="bullhorn">
+    Use dedicated numbers for specific marketing campaigns to track responses.
+  </Card>
+  <Card title="Regional Presence" icon="globe">
+    Lease local numbers in different regions to appear local to customers.
+  </Card>
+  <Card title="Application Numbers" icon="mobile">
+    Give your application its own phone number for sending notifications.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  Keep track of your leased numbers to avoid unnecessary charges. Terminate leases you no longer need.
+</Tip>
+
+- **Choose local numbers** - Lease numbers in the same area code as your target audience for better engagement
+- **Monitor usage** - Track which numbers are being used and which are idle
+- **Plan for scale** - Lease additional numbers as your messaging volume grows
+- **Verify availability** - Always check if a number is available before attempting to lease it
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Text Messages" icon="message" href="/features/text">
+    Use your leased number to send SMS messages
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/lease">
+    View complete API documentation
+  </Card>
+</CardGroup>

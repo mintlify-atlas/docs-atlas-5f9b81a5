@@ -1,0 +1,219 @@
+---
+title: 'Text Messages'
+description: 'Send and manage SMS/MMS text messages'
+---
+
+## Overview
+
+The Text resource provides methods to send SMS/MMS messages, manage reactions, retrieve conversation history, and reply to incoming messages via webhooks.
+
+## Sending Messages
+
+Send a text message to a phone number.
+
+<CodeGroup>
+```javascript Basic
+const result = await contiguity.text.send({
+  to: '+1234567890',
+  message: 'Hello from Contiguity!',
+  from: '+0987654321'
+});
+
+console.log(result.message_id);
+```
+
+```javascript With Attachments
+const result = await contiguity.text.send({
+  to: '+1234567890',
+  message: 'Check out these images!',
+  from: '+0987654321',
+  attachments: [
+    'https://example.com/image1.jpg',
+    'https://example.com/image2.png'
+  ]
+});
+```
+
+```javascript Fast Track
+const result = await contiguity.text.send({
+  to: '+1234567890',
+  message: 'Urgent notification',
+  from: '+0987654321',
+  fast_track: true
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number in E.164 format
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  The text message content to send
+</ParamField>
+
+<ParamField path="from" type="string">
+  The sender's phone number. If not provided, a number will be automatically selected
+</ParamField>
+
+<ParamField path="attachments" type="string[]">
+  Array of attachment URLs (images, videos, etc.). Maximum 3 attachments
+</ParamField>
+
+<ParamField path="fast_track" type="boolean">
+  Enable fast-track delivery for time-sensitive messages
+</ParamField>
+
+### Returns
+
+```typescript
+{
+  message_id: string
+}
+```
+
+## Replying to Messages
+
+Reply to an incoming text message webhook. This method automatically extracts `to` and `from` fields from the webhook event.
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+// Inside your webhook handler
+app.post('/webhook', async (req, res) => {
+  const event = req.body;
+  
+  const result = await contiguity.text.reply(event, {
+    message: 'Thanks for your message!'
+  });
+  
+  res.json({ success: true });
+});
+```
+
+### Parameters
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The incoming webhook event object containing `data.to` and `data.from`
+</ParamField>
+
+<ParamField path="params" type="Omit<TextSendParams, 'to' | 'from'>" required>
+  Send parameters excluding `to` and `from` (automatically populated from event)
+</ParamField>
+
+## Adding Reactions
+
+Add a reaction to a text message.
+
+```javascript
+const result = await contiguity.text.react('add', {
+  message_id: 'msg_123456',
+  reaction: 'love'
+});
+```
+
+### Parameters
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction
+</ParamField>
+
+<ParamField path="params" type="object" required>
+  Reaction parameters
+</ParamField>
+
+<ParamField path="params.message_id" type="string">
+  The ID of the message to react to
+</ParamField>
+
+<ParamField path="params.to" type="string">
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="params.from" type="string">
+  The sender's phone number
+</ParamField>
+
+<ParamField path="params.message" type="string">
+  The message content (alternative to message_id)
+</ParamField>
+
+<ParamField path="params.reaction" type="enum" required>
+  The reaction type. One of: `love`, `thumbsup`, `thumbsdown`, `haha`, `emphasized`, `questioned`
+</ParamField>
+
+## Removing Reactions
+
+Remove a reaction from a text message.
+
+```javascript
+const result = await contiguity.text.react('remove', {
+  message_id: 'msg_123456',
+  reaction: 'love'
+});
+```
+
+## Retrieving Message History
+
+Get conversation history between two phone numbers.
+
+```javascript
+const history = await contiguity.text.history({
+  to: '+1234567890',
+  from: '+0987654321',
+  limit: 50
+});
+```
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="from" type="string" required>
+  The sender's phone number
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum number of messages to retrieve (default: 20)
+</ParamField>
+
+## Getting a Single Message
+
+Retrieve a specific message by its ID.
+
+```javascript
+const message = await contiguity.text.get('msg_123456');
+```
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The message ID to retrieve
+</ParamField>
+
+## Error Handling
+
+```javascript
+try {
+  const result = await contiguity.text.send({
+    to: '+1234567890',
+    message: 'Hello!'
+  });
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('Validation error:', error.errors);
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+<Note>
+  All methods validate input parameters using Zod schemas and throw validation errors for invalid input.
+</Note>

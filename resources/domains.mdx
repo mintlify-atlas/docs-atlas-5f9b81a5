@@ -1,0 +1,274 @@
+---
+title: "Custom Email Domains"
+description: "Register and manage custom domains for sending emails"
+---
+
+## Overview
+
+The Domains resource allows you to register custom domains for sending emails. Using your own domain (e.g., `notifications@yourcompany.com`) instead of a generic sender address improves deliverability and brand recognition.
+
+## Quick Example
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Register a domain
+await contiguity.domains.register('yourcompany.com');
+
+// Send email from your custom domain
+await contiguity.email.send({
+  from: 'notifications@yourcompany.com',
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  text: 'Thanks for signing up!'
+});
+```
+
+## Registering a Domain
+
+Add a custom domain to your account:
+
+```typescript
+const domain = await contiguity.domains.register('yourcompany.com');
+
+console.log('Domain registered:', domain);
+```
+
+You can optionally specify registration options:
+
+```typescript
+const domain = await contiguity.domains.register('yourcompany.com', {
+  // Optional configuration
+});
+```
+
+<Note>
+  After registering a domain, you'll need to add DNS records to verify ownership before you can send emails from it.
+</Note>
+
+## Managing Domains
+
+### List All Domains
+
+Get all domains registered to your account:
+
+```typescript
+const domains = await contiguity.domains.list();
+
+console.log('Registered domains:', domains);
+```
+
+### Get Domain Information
+
+Retrieve details about a specific domain, including verification status:
+
+```typescript
+const info = await contiguity.domains.get('yourcompany.com');
+
+console.log('Domain info:', info);
+console.log('Verified:', info.verified);
+```
+
+### Delete a Domain
+
+Remove a domain from your account:
+
+```typescript
+await contiguity.domains.delete('yourcompany.com');
+
+console.log('Domain removed');
+```
+
+<Warning>
+  Once deleted, you'll no longer be able to send emails from this domain until you register it again.
+</Warning>
+
+## Domain Verification
+
+After registering a domain, you need to verify ownership by adding DNS records:
+
+<Steps>
+  <Step title="Register the domain">
+    ```typescript
+    const domain = await contiguity.domains.register('yourcompany.com');
+    ```
+  </Step>
+  
+  <Step title="Get verification records">
+    Retrieve the DNS records you need to add:
+    
+    ```typescript
+    const info = await contiguity.domains.get('yourcompany.com');
+    console.log('Add these DNS records:', info.dnsRecords);
+    ```
+  </Step>
+  
+  <Step title="Add DNS records">
+    Add the provided DNS records to your domain's DNS configuration through your domain registrar or DNS provider.
+    
+    Typically, you'll need to add:
+    - **TXT record** for domain verification
+    - **DKIM record** for email authentication
+    - **SPF record** for sender authentication
+  </Step>
+  
+  <Step title="Verify configuration">
+    Wait for DNS propagation (can take up to 48 hours) and check verification status:
+    
+    ```typescript
+    const info = await contiguity.domains.get('yourcompany.com');
+    
+    if (info.verified) {
+      console.log('Domain is verified and ready to use!');
+    } else {
+      console.log('Still waiting for DNS verification...');
+    }
+    ```
+  </Step>
+</Steps>
+
+## Complete Workflow
+
+Here's a complete example of registering and using a custom domain:
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+async function setupCustomDomain() {
+  const domain = 'yourcompany.com';
+  
+  // 1. Register the domain
+  console.log(`Registering domain: ${domain}`);
+  await contiguity.domains.register(domain);
+  
+  // 2. Get DNS records to add
+  const info = await contiguity.domains.get(domain);
+  console.log('Add these DNS records:');
+  console.log(info.dnsRecords);
+  
+  // 3. Wait for verification (check periodically)
+  console.log('Waiting for DNS verification...');
+  let verified = false;
+  while (!verified) {
+    await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+    const status = await contiguity.domains.get(domain);
+    verified = status.verified;
+  }
+  
+  console.log('Domain verified! You can now send emails.');
+  
+  // 4. Send email from custom domain
+  await contiguity.email.send({
+    from: `notifications@${domain}`,
+    to: 'user@example.com',
+    subject: 'Hello from our custom domain!',
+    text: 'This email is sent from our verified domain.'
+  });
+  
+  // 5. List all domains
+  const domains = await contiguity.domains.list();
+  console.log('All registered domains:', domains);
+}
+
+setupCustomDomain();
+```
+
+## DNS Configuration
+
+### Required DNS Records
+
+When you register a domain, you'll typically need to add these DNS records:
+
+<Accordion title="SPF Record">
+  Sender Policy Framework (SPF) record authorizes Contiguity to send emails on your behalf.
+  
+  ```
+  Type: TXT
+  Name: @
+  Value: v=spf1 include:_spf.contiguity.co ~all
+  ```
+</Accordion>
+
+<Accordion title="DKIM Record">
+  DomainKeys Identified Mail (DKIM) record adds a digital signature to your emails.
+  
+  ```
+  Type: TXT
+  Name: contiguity._domainkey
+  Value: [provided by Contiguity]
+  ```
+</Accordion>
+
+<Accordion title="Domain Verification">
+  Verification record proves you own the domain.
+  
+  ```
+  Type: TXT
+  Name: _contiguity
+  Value: [provided by Contiguity]
+  ```
+</Accordion>
+
+<Note>
+  The exact values will be provided when you register your domain. Always use the values from `contiguity.domains.get()`.
+</Note>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Transactional Emails" icon="receipt">
+    Send order confirmations, receipts, and notifications from your branded domain.
+  </Card>
+  <Card title="Marketing Emails" icon="bullhorn">
+    Build trust with customers by sending campaigns from your official domain.
+  </Card>
+  <Card title="Account Notifications" icon="bell">
+    Send password resets, verification emails, and alerts from a trusted source.
+  </Card>
+  <Card title="Team Communications" icon="users">
+    Enable your team to send emails from company addresses.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  Use subdomains for different types of emails (e.g., `notifications@yourcompany.com`, `marketing@yourcompany.com`) to better track and manage deliverability.
+</Tip>
+
+- **Verify quickly** - Add DNS records as soon as you register a domain to minimize downtime
+- **Monitor deliverability** - Check your domain's reputation and email delivery rates regularly
+- **Use proper from addresses** - Choose professional, recognizable email addresses like `notifications@` or `hello@`
+- **Test before launch** - Send test emails to verify everything works before using in production
+- **Keep DNS records** - Don't remove DNS records as long as you're using the domain for sending
+
+## Troubleshooting
+
+<Accordion title="Domain not verifying">
+  - Check that you added the exact DNS records provided by Contiguity
+  - Wait for DNS propagation (can take up to 48 hours)
+  - Verify records using a DNS lookup tool
+  - Contact support if issues persist after 48 hours
+</Accordion>
+
+<Accordion title="Emails not delivering">
+  - Ensure the domain is verified (`verified: true`)
+  - Check your DNS records are still in place
+  - Verify you're using the correct `from` address format
+  - Monitor your domain reputation
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Emails" icon="envelope" href="/features/email">
+    Learn how to send emails from your custom domain
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/domains">
+    View complete API documentation
+  </Card>
+</CardGroup>

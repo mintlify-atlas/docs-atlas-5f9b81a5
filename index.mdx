@@ -1,97 +1,146 @@
----
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
----
+<div className="relative overflow-hidden bg-gradient-to-br from-[#cb0404] via-[#e37b84] to-[#f3d2d2] dark:from-[#0f1117] dark:via-[#1a1d27] dark:to-[#242838] py-20">
+  <div className="max-w-6xl mx-auto px-6 lg:px-8">
+    <div className="text-center">
+      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white dark:text-gray-100 mb-6">
+        Contiguity JavaScript SDK
+      </h1>
+      <p className="text-lg sm:text-xl text-white/90 dark:text-gray-300 max-w-2xl mx-auto mb-8">
+        Send SMS, email, iMessage, and WhatsApp messages from your JavaScript or TypeScript applications. Built with type safety and developer experience in mind.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
+        <a
+          href="/quickstart"
+          className="inline-flex items-center px-6 py-3 bg-white dark:bg-[#fbbf24] text-[#222222] font-semibold rounded-full hover:bg-gray-100 dark:hover:bg-[#f9bb1f] transition-colors"
+        >
+          Get Started
+        </a>
+        <a
+          href="/api/client"
+          className="inline-flex items-center px-6 py-3 border border-white/30 dark:border-white/30 bg-white/10 dark:bg-white/10 text-white dark:text-white font-semibold rounded-full hover:bg-white/20 dark:hover:bg-white/20 transition-colors"
+        >
+          API Reference
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
-## Setting up
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Quick Start</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Get up and running with the Contiguity SDK in minutes.</p>
+  
+  <Steps>
+    <Step title="Install the package">
+      Add the Contiguity SDK to your project using your preferred package manager.
+      
+      <CodeGroup>
+      ```bash npm
+      npm install contiguity
+      ```
+      ```bash yarn
+      yarn add contiguity
+      ```
+      ```bash pnpm
+      pnpm add contiguity
+      ```
+      ```bash bun
+      bun add contiguity
+      ```
+      </CodeGroup>
+    </Step>
+    
+    <Step title="Initialize the client">
+      Import and initialize the Contiguity client with your API token. Get your token from the [Contiguity Console](https://console.contiguity.com/).
+      
+      ```typescript
+      import { Contiguity } from 'contiguity';
+      
+      const contiguity = new Contiguity('contiguity_sk_...your_token...');
+      ```
+    </Step>
+    
+    <Step title="Send your first message">
+      Choose your preferred messaging channel and send a message.
+      
+      ```typescript
+      // Send an SMS
+      const response = await contiguity.text.send({
+        to: "+1234567890",
+        message: "Hello from Contiguity!"
+      });
+      
+      console.log('Message sent:', response.message_id);
+      ```
+      
+      <Note>
+        You can also send emails, iMessages, WhatsApp messages, and more. Check out the [Core Features](/features/text) section for details.
+      </Note>
+    </Step>
+  </Steps>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Core Features</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Explore the powerful messaging capabilities of the Contiguity SDK.</p>
+  
+  <CardGroup cols={2}>
+    <Card title="SMS/Text Messages" icon="message" href="/features/text">
+      Send text messages with reactions, conversation history, and delivery tracking.
+    </Card>
+    <Card title="Email" icon="envelope" href="/features/email">
+      Send emails with HTML, plain text, or React Email templates.
+    </Card>
+    <Card title="OTP Verification" icon="shield-check" href="/features/otp">
+      Generate and verify one-time passwords with reverse OTP support.
+    </Card>
+    <Card title="iMessage" icon="comment-dots" href="/features/imessage">
+      Send iMessages with typing indicators, reactions, and read receipts.
+    </Card>
+    <Card title="WhatsApp" icon="whatsapp" href="/features/whatsapp">
+      Send WhatsApp messages with typing indicators and reactions.
+    </Card>
+    <Card title="Webhooks" icon="webhook" href="/resources/webhooks">
+      Receive and verify incoming message webhooks securely.
+    </Card>
+  </CardGroup>
+</div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Developer Experience</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Built for modern TypeScript and JavaScript applications.</p>
+  
+  <CardGroup cols={3}>
+    <Card title="TypeScript First" icon="code" href="/advanced/typescript">
+      Full type safety with TypeScript definitions for all APIs.
+    </Card>
+    <Card title="React Email" icon="react" href="/advanced/react-email">
+      Integrate with React Email for beautiful templated emails.
+    </Card>
+    <Card title="Error Handling" icon="triangle-exclamation" href="/advanced/error-handling">
+      Comprehensive error handling with detailed error messages.
+    </Card>
+  </CardGroup>
+</div>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="bg-gray-50 dark:bg-[#1a1d27] border border-gray-200 dark:border-[#27272a] rounded-2xl p-8 text-center">
+    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Ready to get started?</h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+      Jump into our quickstart guide and send your first message in minutes, or explore the API reference for detailed documentation.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <a
+        href="/quickstart"
+        className="inline-flex items-center px-6 py-3 bg-[#cb0404] text-white font-semibold rounded-full hover:bg-[#b00303] transition-colors"
+      >
+        View Quickstart
+      </a>
+      <a
+        href="https://discord.gg/Z9K5XAsS7H"
+        className="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-[#27272a] bg-white dark:bg-[#242838] text-gray-900 dark:text-white font-semibold rounded-full hover:bg-gray-50 dark:hover:bg-[#2a2f42] transition-colors"
+      >
+        Join Discord
+      </a>
+    </div>
+  </div>
+</div>

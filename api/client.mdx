@@ -1,0 +1,106 @@
+---
+title: "Contiguity Client"
+description: "Main client class for the Contiguity JavaScript SDK"
+---
+
+## Contiguity
+
+The main client class that provides access to all Contiguity API resources.
+
+### Constructor
+
+```typescript
+new Contiguity(token?: string, config?: ContiguityConfig)
+```
+
+Creates a new Contiguity client instance.
+
+<ParamField path="token" type="string" optional>
+  Your Contiguity API token. If not provided, the SDK will look for `CONTIGUITY_API_KEY` or `CONTIGUITY_TOKEN` environment variables.
+  
+  The token must start with `contiguity_sk_`.
+</ParamField>
+
+<ParamField path="config" type="ContiguityConfig" optional>
+  Configuration options for the client.
+  
+  <Expandable title="properties">
+    <ParamField path="debug" type="boolean" optional>
+      Enable debug logging for API requests.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Properties
+
+<ResponseField name="text" type="TextResource">
+  Access to SMS/text messaging methods. See [Text API](/api/text).
+</ResponseField>
+
+<ResponseField name="email" type="EmailResource">
+  Access to email sending methods. See [Email API](/api/email).
+</ResponseField>
+
+<ResponseField name="otp" type="OtpResource">
+  Access to one-time password methods. See [OTP API](/api/otp).
+</ResponseField>
+
+<ResponseField name="imessage" type="ImessageResource">
+  Access to iMessage methods. See [iMessage API](/api/imessage).
+</ResponseField>
+
+<ResponseField name="whatsapp" type="WhatsappResource">
+  Access to WhatsApp methods. See [WhatsApp API](/api/whatsapp).
+</ResponseField>
+
+<ResponseField name="lease" type="LeaseResource">
+  Access to phone number leasing methods. See [Lease API](/api/lease).
+</ResponseField>
+
+<ResponseField name="domains" type="DomainsResource">
+  Access to email domain management methods. See [Domains API](/api/domains).
+</ResponseField>
+
+<ResponseField name="entitlements" type="EntitlementsResource">
+  Access to entitlement management methods. See [Entitlements API](/api/entitlements).
+</ResponseField>
+
+<ResponseField name="webhook" type="WebhookResource">
+  Access to webhook verification and parsing methods. See [Webhooks API](/api/webhooks).
+</ResponseField>
+
+### Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+// Initialize with token parameter
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Or use environment variables
+const contiguity = new Contiguity();
+
+// With debug mode enabled
+const contiguity = new Contiguity('contiguity_sk_...', { debug: true });
+
+// Access resources
+await contiguity.text.send({
+  to: '+1234567890',
+  message: 'Hello from Contiguity!'
+});
+```
+
+### Error Handling
+
+The constructor throws an error if:
+- No token is provided and no environment variable is set
+- The provided token doesn't start with `contiguity_sk_`
+
+```typescript
+try {
+  const contiguity = new Contiguity('invalid_token');
+} catch (error) {
+  console.error(error.message);
+  // "Invalid Contiguity token: key must start with contiguity_sk_."
+}
+```

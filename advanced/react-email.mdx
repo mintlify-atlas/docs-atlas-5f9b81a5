@@ -1,0 +1,505 @@
+---
+title: 'React Email Integration'
+description: 'Send beautiful emails using React Email components'
+---
+
+## Overview
+
+The Contiguity SDK integrates with [React Email](https://react.email/) to let you build emails using React components. The SDK automatically renders your components to HTML and plain text.
+
+## Installation
+
+Install React Email and its dependencies:
+
+<CodeGroup>
+```bash npm
+npm install @react-email/render react react-dom
+```
+
+```bash yarn
+yarn add @react-email/render react react-dom
+```
+
+```bash pnpm
+pnpm add @react-email/render react react-dom
+```
+</CodeGroup>
+
+<Note>
+React Email requires `react` and `react-dom` as peer dependencies.
+</Note>
+
+## Quick Start
+
+### Using the `react` Parameter
+
+Pass React components directly to the `react` parameter:
+
+```typescript
+import { Contiguity } from '@contiguity/sdk';
+import { Html, Text, Button } from '@react-email/components';
+import * as React from 'react';
+
+const client = new Contiguity();
+
+await client.email.send({
+  to: 'user@example.com',
+  from: 'sender@yourdomain.com',
+  subject: 'Welcome to our platform!',
+  react: (
+    <Html>
+      <Text>Welcome aboard!</Text>
+      <Button href="https://example.com/get-started">
+        Get Started
+      </Button>
+    </Html>
+  )
+});
+```
+
+The SDK automatically:
+1. Renders the component to HTML
+2. Generates plain text version
+3. Sends both versions in the email
+
+### Using `renderReactEmail` Helper
+
+For more control, use the `renderReactEmail` function:
+
+```typescript
+import { Contiguity, renderReactEmail } from '@contiguity/sdk';
+import { WelcomeEmail } from './emails/welcome';
+
+const client = new Contiguity();
+
+// Render component
+const { html, text } = await renderReactEmail(
+  <WelcomeEmail name="Alice" />
+);
+
+// Send with rendered content
+await client.email.send({
+  to: 'user@example.com',
+  from: 'sender@yourdomain.com',
+  subject: 'Welcome!',
+  html,
+  text
+});
+```
+
+## Creating Email Templates
+
+### Simple Template
+
+```typescript emails/welcome.tsx
+import { Html, Head, Body, Container, Text, Button } from '@react-email/components';
+import * as React from 'react';
+
+interface WelcomeEmailProps {
+  name: string;
+}
+
+export function WelcomeEmail({ name }: WelcomeEmailProps) {
+  return (
+    <Html>
+      <Head />
+      <Body style={{ backgroundColor: '#f6f9fc' }}>
+        <Container>
+          <Text>Hi {name},</Text>
+          <Text>Welcome to our platform!</Text>
+          <Button
+            href="https://example.com/get-started"
+            style={{ background: '#5469d4', color: '#fff' }}
+          >
+            Get Started
+          </Button>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+```
+
+### Template with Styling
+
+```typescript emails/notification.tsx
+import {
+  Html,
+  Head,
+  Body,
+  Container,
+  Section,
+  Text,
+  Button,
+  Hr
+} from '@react-email/components';
+import * as React from 'react';
+
+interface NotificationEmailProps {
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionText?: string;
+}
+
+export function NotificationEmail({
+  title,
+  message,
+  actionUrl,
+  actionText
+}: NotificationEmailProps) {
+  return (
+    <Html>
+      <Head />
+      <Body style={main}>
+        <Container style={container}>
+          <Section>
+            <Text style={heading}>{title}</Text>
+            <Text style={paragraph}>{message}</Text>
+            {actionUrl && actionText && (
+              <>
+                <Button style={button} href={actionUrl}>
+                  {actionText}
+                </Button>
+              </>
+            )}
+            <Hr style={hr} />
+            <Text style={footer}>
+              © 2024 Your Company. All rights reserved.
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+const main = {
+  backgroundColor: '#f6f9fc',
+  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'
+};
+
+const container = {
+  margin: '0 auto',
+  padding: '20px 0 48px',
+  maxWidth: '560px'
+};
+
+const heading = {
+  fontSize: '24px',
+  fontWeight: 'bold',
+  marginBottom: '16px'
+};
+
+const paragraph = {
+  fontSize: '16px',
+  lineHeight: '26px',
+  color: '#525f7f'
+};
+
+const button = {
+  backgroundColor: '#5469d4',
+  borderRadius: '5px',
+  color: '#fff',
+  fontSize: '16px',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+  display: 'block',
+  padding: '12px'
+};
+
+const hr = {
+  borderColor: '#e6ebf1',
+  margin: '20px 0'
+};
+
+const footer = {
+  color: '#8898aa',
+  fontSize: '12px',
+  lineHeight: '16px'
+};
+```
+
+## Sending Templates
+
+### With the `react` Parameter
+
+```typescript
+import { WelcomeEmail } from './emails/welcome';
+
+await client.email.send({
+  to: 'user@example.com',
+  from: 'sender@yourdomain.com',
+  subject: 'Welcome!',
+  react: <WelcomeEmail name="Alice" />
+});
+```
+
+### Pre-rendering Templates
+
+```typescript
+import { renderReactEmail } from '@contiguity/sdk';
+import { NotificationEmail } from './emails/notification';
+
+// Render once
+const { html, text } = await renderReactEmail(
+  <NotificationEmail
+    title="New Message"
+    message="You have a new message from support."
+    actionUrl="https://example.com/messages"
+    actionText="View Message"
+  />
+);
+
+// Send to multiple recipients
+for (const recipient of recipients) {
+  await client.email.send({
+    to: recipient,
+    from: 'noreply@yourdomain.com',
+    subject: 'New Message',
+    html,
+    text
+  });
+}
+```
+
+## How It Works
+
+The `renderReactEmail` function:
+
+1. **Imports React Email** dynamically
+2. **Renders component** to HTML using `@react-email/render`
+3. **Generates plain text** version automatically
+4. **Returns both formats** for email sending
+
+```typescript src/utils/react-email.ts
+export async function renderReactEmail(
+  node: unknown
+): Promise<{ html: string; text: string }> {
+  const mod = await import("@react-email/render").catch(() => {
+    throw new Error(
+      "Failed to render React component. Install `@react-email/render` (and peer deps react, react-dom)."
+    );
+  });
+  const html = await mod.render(node);
+  const text = mod.toPlainText(html);
+  return { html, text };
+}
+```
+
+<Note>
+The SDK handles React Email imports dynamically, so you only need to install it if you use React components for emails.
+</Note>
+
+## Available React Email Components
+
+React Email provides many built-in components:
+
+- `Html` - Root HTML wrapper
+- `Head` - Document head
+- `Body` - Document body
+- `Container` - Centered container
+- `Section` - Content section
+- `Row` / `Column` - Grid layout
+- `Text` - Paragraph text
+- `Heading` - Headings (h1-h6)
+- `Button` - Call-to-action button
+- `Link` - Hyperlink
+- `Img` - Image
+- `Hr` - Horizontal rule
+- `Code` - Code block
+- `Preview` - Email preview text
+
+See the [React Email documentation](https://react.email/docs/components/html) for all components.
+
+## Email Template Examples
+
+### Password Reset Email
+
+```typescript
+import { Html, Body, Container, Text, Button, Section } from '@react-email/components';
+
+interface PasswordResetEmailProps {
+  resetUrl: string;
+  expirationMinutes: number;
+}
+
+export function PasswordResetEmail({ resetUrl, expirationMinutes }: PasswordResetEmailProps) {
+  return (
+    <Html>
+      <Body>
+        <Container>
+          <Section>
+            <Text>Password Reset Request</Text>
+            <Text>
+              Click the button below to reset your password. This link will expire in {expirationMinutes} minutes.
+            </Text>
+            <Button href={resetUrl}>Reset Password</Button>
+            <Text>
+              If you didn't request this, you can safely ignore this email.
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+// Send it
+await client.email.send({
+  to: 'user@example.com',
+  from: 'security@yourdomain.com',
+  subject: 'Reset your password',
+  react: <PasswordResetEmail resetUrl="https://example.com/reset?token=..." expirationMinutes={30} />
+});
+```
+
+### Order Confirmation Email
+
+```typescript
+import { Html, Body, Container, Text, Section, Hr } from '@react-email/components';
+
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface OrderConfirmationEmailProps {
+  orderNumber: string;
+  items: OrderItem[];
+  total: number;
+}
+
+export function OrderConfirmationEmail({ orderNumber, items, total }: OrderConfirmationEmailProps) {
+  return (
+    <Html>
+      <Body>
+        <Container>
+          <Text>Order Confirmation</Text>
+          <Text>Order #{orderNumber}</Text>
+          <Hr />
+          {items.map((item, i) => (
+            <Section key={i}>
+              <Text>
+                {item.quantity}x {item.name} - ${item.price.toFixed(2)}
+              </Text>
+            </Section>
+          ))}
+          <Hr />
+          <Text>Total: ${total.toFixed(2)}</Text>
+          <Text>Thank you for your order!</Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+// Send it
+await client.email.send({
+  to: 'customer@example.com',
+  from: 'orders@yourdomain.com',
+  subject: `Order Confirmation #${orderNumber}`,
+  react: (
+    <OrderConfirmationEmail
+      orderNumber="12345"
+      items={[
+        { name: 'Widget', quantity: 2, price: 29.99 },
+        { name: 'Gadget', quantity: 1, price: 49.99 }
+      ]}
+      total={109.97}
+    />
+  )
+});
+```
+
+## Best Practices
+
+### 1. Always Provide Plain Text
+
+React Email automatically generates plain text, but you can customize it:
+
+```typescript
+const { html, text } = await renderReactEmail(<WelcomeEmail name="Alice" />);
+
+// Customize plain text if needed
+const customText = text.replace(/\n{3,}/g, '\n\n'); // Remove extra newlines
+
+await client.email.send({
+  to: 'user@example.com',
+  from: 'sender@yourdomain.com',
+  subject: 'Welcome!',
+  html,
+  text: customText
+});
+```
+
+### 2. Use Inline Styles
+
+Email clients don't support external stylesheets. Use inline styles:
+
+```typescript
+<Text style={{ fontSize: '16px', color: '#333' }}>
+  Your content here
+</Text>
+```
+
+### 3. Test Email Rendering
+
+Develop and preview emails locally using React Email CLI:
+
+```bash
+npx react-email dev
+```
+
+### 4. Keep Templates Reusable
+
+Extract common layouts into shared components:
+
+```typescript emails/layout.tsx
+interface EmailLayoutProps {
+  children: React.ReactNode;
+}
+
+export function EmailLayout({ children }: EmailLayoutProps) {
+  return (
+    <Html>
+      <Head />
+      <Body style={{ backgroundColor: '#f6f9fc' }}>
+        <Container style={{ maxWidth: '560px', margin: '0 auto' }}>
+          {children}
+          <Hr />
+          <Text style={{ fontSize: '12px', color: '#8898aa' }}>
+            © 2024 Your Company. All rights reserved.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+```
+
+## Error Handling
+
+Handle missing dependencies gracefully:
+
+```typescript
+import { ContiguityError, renderReactEmail } from '@contiguity/sdk';
+
+try {
+  const { html, text } = await renderReactEmail(<WelcomeEmail name="Alice" />);
+  await client.email.send({ to: 'user@example.com', from: 'sender@yourdomain.com', subject: 'Welcome', html, text });
+} catch (error) {
+  if (error instanceof Error && error.message.includes('@react-email/render')) {
+    console.error('React Email not installed. Run: npm install @react-email/render react react-dom');
+  } else if (error instanceof ContiguityError) {
+    console.error('API error:', error.message);
+  } else {
+    throw error;
+  }
+}
+```
+
+<Tip>
+For production use, pre-render templates at build time and cache the HTML/text to avoid runtime overhead.
+</Tip>

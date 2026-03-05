@@ -1,0 +1,406 @@
+---
+title: "Webhooks"
+description: "Receive and verify incoming message events securely"
+---
+
+## Overview
+
+Webhooks allow you to receive real-time notifications when events occur, such as incoming messages, delivery confirmations, and status updates. The Contiguity SDK provides utilities to verify webhook signatures and parse webhook payloads.
+
+## Quick Example
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// In your webhook endpoint
+app.post('/webhooks/contiguity', (req, res) => {
+  // Verify the webhook signature
+  const isValid = contiguity.webhook.verify(req, 'your_webhook_secret');
+  
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Parse the webhook payload
+  const event = contiguity.webhook.parse(req.body);
+  
+  console.log('Event type:', event.type);
+  console.log('Event data:', event.data);
+  
+  res.status(200).send('OK');
+});
+```
+
+## Verifying Webhook Signatures
+
+Contiguity signs all webhook requests with a signature that you should verify before processing the payload. This ensures the webhook actually came from Contiguity.
+
+### Automatic Verification (Request Object)
+
+The easiest way to verify is to pass the entire request object:
+
+```typescript
+const isValid = contiguity.webhook.verify(req, 'your_webhook_secret');
+
+if (!isValid) {
+  return res.status(401).send('Invalid signature');
+}
+```
+
+<Note>
+  This method automatically extracts the signature from the `contiguity-signature` header and the raw body from the request.
+</Note>
+
+### Manual Verification (Raw Data)
+
+For more control, you can verify manually with the raw body and signature:
+
+```typescript
+const rawBody = req.body; // Must be raw string or Buffer
+const signature = req.headers['contiguity-signature'];
+const secret = 'your_webhook_secret';
+
+const isValid = contiguity.webhook.verify(rawBody, signature, secret);
+```
+
+### With Tolerance Window
+
+Add a tolerance window (in seconds) to account for clock skew:
+
+```typescript
+// Allow up to 5 minutes of clock skew
+const isValid = contiguity.webhook.verify(req, 'your_webhook_secret', 300);
+```
+
+## Parsing Webhook Payloads
+
+After verifying the signature, parse the webhook body to get a typed event object:
+
+```typescript
+const event = contiguity.webhook.parse(req.body);
+
+console.log('Event type:', event.type);
+console.log('Event ID:', event.id);
+console.log('Timestamp:', event.timestamp);
+console.log('Event data:', event.data);
+```
+
+## Webhook Event Types
+
+Contiguity sends different types of webhook events:
+
+<Accordion title="text.incoming">
+  Incoming SMS/text message received
+  
+  ```typescript
+  {
+    type: 'text.incoming',
+    id: 'evt_...',
+    timestamp: 1234567890,
+    data: {
+      from: '+1234567890',
+      to: '+19876543210',
+      message: 'Hello!',
+      message_id: 'msg_...'
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="imessage.incoming">
+  Incoming iMessage received
+  
+  ```typescript
+  {
+    type: 'imessage.incoming',
+    id: 'evt_...',
+    timestamp: 1234567890,
+    data: {
+      from: '+1234567890',
+      to: '+19876543210',
+      message: 'Hello from iMessage!',
+      message_id: 'msg_...'
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="text.delivery">
+  Message delivery status update
+  
+  ```typescript
+  {
+    type: 'text.delivery',
+    id: 'evt_...',
+    timestamp: 1234567890,
+    data: {
+      message_id: 'msg_...',
+      status: 'delivered',
+      to: '+1234567890'
+    }
+  }
+  ```
+</Accordion>
+
+## Complete Webhook Handler
+
+Here's a complete example of handling webhooks with Express:
+
+```typescript
+import express from 'express';
+import { Contiguity } from 'contiguity';
+
+const app = express();
+const contiguity = new Contiguity('contiguity_sk_...');
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+
+// IMPORTANT: Use raw body parser for webhook verification
+app.use('/webhooks', express.raw({ type: 'application/json' }));
+
+app.post('/webhooks/contiguity', async (req, res) => {
+  try {
+    // 1. Verify the webhook signature
+    const isValid = contiguity.webhook.verify(req, WEBHOOK_SECRET);
+    
+    if (!isValid) {
+      console.log('Invalid webhook signature');
+      return res.status(401).send('Invalid signature');
+    }
+    
+    // 2. Parse the webhook payload
+    const event = contiguity.webhook.parse(req.body);
+    
+    // 3. Handle different event types
+    switch (event.type) {
+      case 'text.incoming':
+        await handleIncomingText(event);
+        break;
+        
+      case 'imessage.incoming':
+        await handleIncomingImessage(event);
+        break;
+        
+      case 'text.delivery':
+        await handleDeliveryStatus(event);
+        break;
+        
+      default:
+        console.log('Unknown event type:', event.type);
+    }
+    
+    // 4. Respond quickly
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Internal server error');
+  }
+});
+
+async function handleIncomingText(event) {
+  console.log('Incoming text:', event.data);
+  
+  // Auto-reply example
+  await contiguity.text.send({
+    to: event.data.from,
+    from: event.data.to,
+    message: `You said: ${event.data.message}`
+  });
+}
+
+async function handleIncomingImessage(event) {
+  console.log('Incoming iMessage:', event.data);
+  
+  // Use the reply helper
+  await contiguity.imessage.reply(event, {
+    message: 'Thanks for your message!'
+  });
+}
+
+async function handleDeliveryStatus(event) {
+  console.log('Delivery update:', event.data);
+  
+  // Update your database with delivery status
+  // await db.messages.update(event.data.message_id, {
+  //   status: event.data.status
+  // });
+}
+
+app.listen(3000, () => {
+  console.log('Webhook server running on port 3000');
+});
+```
+
+## Framework Examples
+
+### Next.js API Route
+
+```typescript
+// pages/api/webhooks/contiguity.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity(process.env.CONTIGUITY_API_KEY!);
+
+export const config = {
+  api: {
+    bodyParser: false, // Required for signature verification
+  },
+};
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method not allowed');
+  }
+  
+  // Get raw body
+  const rawBody = await getRawBody(req);
+  
+  // Verify signature
+  const signature = req.headers['contiguity-signature'] as string;
+  const isValid = contiguity.webhook.verify(
+    rawBody,
+    signature,
+    process.env.WEBHOOK_SECRET!
+  );
+  
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Parse and handle event
+  const event = contiguity.webhook.parse(rawBody);
+  console.log('Received event:', event.type);
+  
+  res.status(200).send('OK');
+}
+
+async function getRawBody(req: NextApiRequest): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+```
+
+### Fastify
+
+```typescript
+import Fastify from 'fastify';
+import { Contiguity } from 'contiguity';
+
+const fastify = Fastify();
+const contiguity = new Contiguity(process.env.CONTIGUITY_API_KEY!);
+
+fastify.post('/webhooks/contiguity', {
+  config: {
+    rawBody: true, // Enable raw body
+  },
+  handler: async (request, reply) => {
+    const isValid = contiguity.webhook.verify(
+      request.rawBody,
+      request.headers['contiguity-signature'],
+      process.env.WEBHOOK_SECRET!
+    );
+    
+    if (!isValid) {
+      return reply.code(401).send('Invalid signature');
+    }
+    
+    const event = contiguity.webhook.parse(request.rawBody);
+    console.log('Event:', event.type);
+    
+    return reply.code(200).send('OK');
+  },
+});
+
+fastify.listen({ port: 3000 });
+```
+
+## Responding to Webhooks
+
+Use the `reply()` helper methods to quickly respond to incoming messages:
+
+```typescript
+// Text message reply
+await contiguity.text.reply(event, {
+  message: 'Thanks for your message!'
+});
+
+// iMessage reply
+await contiguity.imessage.reply(event, {
+  message: 'Got your iMessage!',
+  attachments: ['https://example.com/image.jpg']
+});
+
+// WhatsApp reply
+await contiguity.whatsapp.reply(event, {
+  message: 'Received!'
+});
+```
+
+<Tip>
+  The `reply()` methods automatically swap the `to` and `from` fields from the webhook event, so you don't need to manually specify them.
+</Tip>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Verify" icon="shield-check">
+    Never process webhooks without verifying the signature first.
+  </Card>
+  <Card title="Use HTTPS" icon="lock">
+    Always use HTTPS for your webhook endpoints in production.
+  </Card>
+  <Card title="Keep Secrets Safe" icon="key">
+    Store webhook secrets in environment variables, never in code.
+  </Card>
+  <Card title="Respond Quickly" icon="clock">
+    Respond with 200 OK as quickly as possible. Do heavy processing async.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Signature verification failing">
+  - Ensure you're using the raw request body, not parsed JSON
+  - Check that the webhook secret matches the one in your Contiguity dashboard
+  - Verify your server's clock is synchronized (for timestamp validation)
+  - Check that you're reading the `contiguity-signature` header correctly
+</Accordion>
+
+<Accordion title="Webhooks not being received">
+  - Verify your webhook URL is publicly accessible
+  - Check that your endpoint responds with 200 OK
+  - Ensure your server is not timing out
+  - Check firewall and security group settings
+</Accordion>
+
+<Accordion title="Duplicate webhooks">
+  - Implement idempotency using the event `id` field
+  - Store processed event IDs to prevent duplicate processing
+  - Webhooks may be retried if your server doesn't respond quickly
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Text Messages" icon="message" href="/features/text">
+    Learn about replying to text messages
+  </Card>
+  <Card title="iMessage" icon="comment-dots" href="/features/imessage">
+    Learn about replying to iMessages
+  </Card>
+  <Card title="WhatsApp" icon="whatsapp" href="/features/whatsapp">
+    Learn about replying to WhatsApp messages
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/webhooks">
+    View complete webhook API documentation
+  </Card>
+</CardGroup>

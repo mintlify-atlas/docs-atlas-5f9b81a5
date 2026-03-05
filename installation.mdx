@@ -1,0 +1,399 @@
+---
+title: Installation
+description: Set up the Contiguity JavaScript SDK in your project
+---
+
+## Requirements
+
+Before you begin, ensure you have:
+
+- **Node.js 18 or higher** installed on your system
+- A **Contiguity account** with access to the [Console](https://console.contiguity.com)
+- An **API token** from the Contiguity Console
+
+## Install the Package
+
+Install the Contiguity SDK using your preferred package manager:
+
+<CodeGroup>
+```bash npm
+npm install contiguity
+```
+
+```bash pnpm
+pnpm add contiguity
+```
+
+```bash yarn
+yarn add contiguity
+```
+
+```bash bun
+bun add contiguity
+```
+</CodeGroup>
+
+The package includes:
+- Full TypeScript definitions
+- ESM module support
+- Zod for runtime validation
+- Optional React Email support for email templates
+
+## Get Your API Token
+
+<Steps>
+  <Step title="Sign up or log in">
+    Visit [console.contiguity.com](https://console.contiguity.com) and sign in to your account.
+  </Step>
+
+  <Step title="Navigate to API Keys">
+    Go to your dashboard and find the API Keys section.
+  </Step>
+
+  <Step title="Create a new token">
+    Click "Create API Key" or "Generate Token" to create a new API token.
+    
+    Your token will start with `contiguity_sk_` followed by a random string.
+  </Step>
+
+  <Step title="Copy and secure your token">
+    Copy your API token immediately and store it securely.
+
+    <Warning>
+      **Never commit your API token to version control.** Always use environment variables or secure secret management.
+    </Warning>
+  </Step>
+</Steps>
+
+## Environment Setup
+
+### Using Environment Variables
+
+The SDK automatically reads your API token from environment variables. This is the recommended approach for production applications.
+
+<Steps>
+  <Step title="Create a .env file">
+    In your project root, create a `.env` file:
+
+    ```bash .env
+    CONTIGUITY_API_KEY=contiguity_sk_your_token_here
+    ```
+
+    Or alternatively:
+
+    ```bash .env
+    CONTIGUITY_TOKEN=contiguity_sk_your_token_here
+    ```
+
+    <Note>
+      The SDK checks both `CONTIGUITY_API_KEY` and `CONTIGUITY_TOKEN`. You only need to set one.
+    </Note>
+  </Step>
+
+  <Step title="Add .env to .gitignore">
+    Ensure your `.env` file is ignored by Git:
+
+    ```bash .gitignore
+    .env
+    .env.local
+    .env.*.local
+    ```
+  </Step>
+
+  <Step title="Load environment variables">
+    If you're not using a framework that automatically loads `.env` files, install `dotenv`:
+
+    ```bash
+    npm install dotenv
+    ```
+
+    Then load it at the top of your entry file:
+
+    ```javascript
+    import 'dotenv/config';
+    import { Contiguity } from 'contiguity';
+
+    const contiguity = new Contiguity();
+    ```
+  </Step>
+</Steps>
+
+### Framework-Specific Setup
+
+<Tabs>
+  <Tab title="Next.js">
+    Next.js automatically loads environment variables from `.env.local`:
+
+    ```bash .env.local
+    CONTIGUITY_API_KEY=contiguity_sk_your_token_here
+    ```
+
+    For server-side usage:
+
+    ```typescript app/api/send/route.ts
+    import { Contiguity } from 'contiguity';
+
+    export async function POST(request: Request) {
+      const contiguity = new Contiguity(); // Reads from env automatically
+      
+      const response = await contiguity.text.send({
+        to: "+1234567890",
+        message: "Hello from Next.js!"
+      });
+      
+      return Response.json(response);
+    }
+    ```
+
+    <Warning>
+      Never use the SDK in client-side components. Always call it from API routes or server components to keep your token secure.
+    </Warning>
+  </Tab>
+
+  <Tab title="Express">
+    Load environment variables with `dotenv`:
+
+    ```javascript server.js
+    import 'dotenv/config';
+    import express from 'express';
+    import { Contiguity } from 'contiguity';
+
+    const app = express();
+    const contiguity = new Contiguity();
+
+    app.post('/send-message', async (req, res) => {
+      try {
+        const response = await contiguity.text.send({
+          to: req.body.phone,
+          message: req.body.message
+        });
+        res.json(response);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.listen(3000);
+    ```
+  </Tab>
+
+  <Tab title="Serverless Functions">
+    For AWS Lambda, Vercel, Netlify, or other serverless platforms:
+
+    **Set environment variables in your platform's dashboard:**
+    - AWS Lambda: Use the Environment Variables section
+    - Vercel: Project Settings → Environment Variables
+    - Netlify: Site Settings → Build & Deploy → Environment
+
+    ```typescript function.ts
+    import { Contiguity } from 'contiguity';
+
+    export async function handler(event) {
+      const contiguity = new Contiguity(); // Reads from platform env vars
+      
+      const response = await contiguity.text.send({
+        to: event.phone,
+        message: event.message
+      });
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify(response)
+      };
+    }
+    ```
+  </Tab>
+
+  <Tab title="Bun">
+    Bun automatically loads `.env` files:
+
+    ```bash .env
+    CONTIGUITY_API_KEY=contiguity_sk_your_token_here
+    ```
+
+    ```typescript index.ts
+    import { Contiguity } from 'contiguity';
+
+    const contiguity = new Contiguity();
+
+    const response = await contiguity.text.send({
+      to: "+1234567890",
+      message: "Hello from Bun!"
+    });
+
+    console.log(response);
+    ```
+  </Tab>
+</Tabs>
+
+## Initialize the Client
+
+There are three ways to initialize the Contiguity client:
+
+### 1. Using Environment Variables (Recommended)
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity();
+```
+
+The SDK will automatically read from `CONTIGUITY_API_KEY` or `CONTIGUITY_TOKEN`.
+
+### 2. Passing Token Directly
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_your_token_here');
+```
+
+<Warning>
+  Only use this method for testing. Never hardcode tokens in production code.
+</Warning>
+
+### 3. With Configuration Options
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_your_token_here', {
+  debug: true // Enables debug logging
+});
+```
+
+## Verify Your Setup
+
+Test your installation and configuration with a simple script:
+
+```typescript test.ts
+import { Contiguity } from 'contiguity';
+
+async function test() {
+  try {
+    const contiguity = new Contiguity();
+    console.log('✓ SDK initialized successfully');
+    console.log('✓ Token format is valid');
+    
+    // Optional: Test with a real API call
+    // const response = await contiguity.text.send({
+    //   to: "+1234567890",
+    //   message: "Test message"
+    // });
+    // console.log('✓ API call successful:', response);
+  } catch (error) {
+    console.error('✗ Setup failed:', error.message);
+  }
+}
+
+test();
+```
+
+Run the test:
+
+<CodeGroup>
+```bash Node.js
+node test.ts
+```
+
+```bash Bun
+bun run test.ts
+```
+
+```bash tsx
+npx tsx test.ts
+```
+</CodeGroup>
+
+If you see "SDK initialized successfully", you're ready to go!
+
+## TypeScript Configuration
+
+The SDK is built with TypeScript and includes full type definitions. For the best experience, ensure your `tsconfig.json` includes:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true
+  }
+}
+```
+
+## Optional: React Email Support
+
+If you want to use React components for email templates, install the peer dependency:
+
+```bash
+npm install @react-email/render react react-dom
+```
+
+Then you can send emails with React components:
+
+```typescript
+import { Contiguity } from 'contiguity';
+import { WelcomeEmail } from './emails/welcome';
+
+const contiguity = new Contiguity();
+
+await contiguity.email.send({
+  to: "user@example.com",
+  from: "Your App <no-reply@yourapp.com>",
+  subject: "Welcome!",
+  react: <WelcomeEmail name="John" />
+});
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Contiguity token required">
+    This means the SDK can't find your API token. Ensure:
+    - You've set `CONTIGUITY_API_KEY` or `CONTIGUITY_TOKEN` in your environment
+    - Your `.env` file is in the correct location
+    - You're loading environment variables (with `dotenv` or your framework's loader)
+    - Or pass the token directly to the constructor
+  </Accordion>
+
+  <Accordion title="Error: Invalid Contiguity token">
+    Your token must start with `contiguity_sk_`. If you're seeing this error:
+    - Check that you copied the full token from the Console
+    - Ensure there are no extra spaces or quotes around the token
+    - Verify you're using a Secret Key (not a publishable key)
+  </Accordion>
+
+  <Accordion title="Module not found errors">
+    If you see module resolution errors:
+    - Ensure you're using Node.js 18 or higher
+    - Check that your `package.json` has `"type": "module"` for ESM
+    - Or use `.mjs` extension for your files
+    - For CommonJS, use `require()` instead of `import`
+  </Accordion>
+
+  <Accordion title="TypeScript errors">
+    If you're getting TypeScript errors:
+    - Ensure `typescript` version 5.0 or higher
+    - Set `"moduleResolution": "bundler"` or `"node16"` in `tsconfig.json`
+    - Run `npm install` again to ensure types are installed
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Send your first message in 5 minutes
+  </Card>
+  <Card title="Text Messages" icon="message" href="/features/text">
+    Learn about SMS and text messaging features
+  </Card>
+  <Card title="Email" icon="envelope" href="/features/email">
+    Send emails with templates and attachments
+  </Card>
+  <Card title="Core Features" icon="book" href="/features/text">
+    Explore messaging features and capabilities
+  </Card>
+</CardGroup>

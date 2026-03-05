@@ -1,0 +1,374 @@
+---
+title: 'iMessage'
+description: 'Send iMessages with reactions, typing indicators, and read receipts'
+---
+
+## Overview
+
+The iMessage resource enables you to send iMessages to iOS users with support for attachments, reactions (tapbacks), typing indicators, read receipts, and conversation history. It includes automatic SMS fallback for non-iMessage users.
+
+## Sending Messages
+
+Send an iMessage to an iOS device.
+
+<CodeGroup>
+```javascript Basic iMessage
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'Hello from iMessage!',
+  from: '+0987654321'
+});
+
+console.log(result.message_id);
+```
+
+```javascript With Attachments
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'Check out these photos!',
+  from: '+0987654321',
+  attachments: [
+    'https://example.com/photo1.jpg',
+    'https://example.com/photo2.jpg'
+  ]
+});
+```
+
+```javascript With SMS Fallback
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'This is an iMessage with fallback',
+  from: '+0987654321',
+  fallback: {
+    when: ['imessage_unsupported', 'imessage_fails'],
+    from: '+1111111111' // Optional: different number for SMS
+  }
+});
+```
+
+```javascript Fast Track
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'Urgent notification',
+  from: '+0987654321',
+  fast_track: true
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number in E.164 format
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  The message content to send
+</ParamField>
+
+<ParamField path="from" type="string">
+  The sender's phone number. If not provided, a number will be automatically selected
+</ParamField>
+
+<ParamField path="attachments" type="string[]">
+  Array of attachment URLs (images, videos, etc.)
+</ParamField>
+
+<ParamField path="fallback" type="object">
+  SMS fallback configuration for non-iMessage users
+</ParamField>
+
+<ParamField path="fallback.when" type="array" required>
+  Array of conditions triggering fallback: `imessage_unsupported` or `imessage_fails`
+</ParamField>
+
+<ParamField path="fallback.from" type="string">
+  Optional different phone number to use for SMS fallback
+</ParamField>
+
+<ParamField path="fast_track" type="boolean">
+  Enable fast-track delivery for time-sensitive messages
+</ParamField>
+
+### Returns
+
+```typescript
+{
+  message_id: string
+}
+```
+
+## Replying to Messages
+
+Reply to an incoming iMessage webhook. This method automatically extracts `to` and `from` fields from the webhook event.
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+// Inside your webhook handler
+app.post('/webhook', async (req, res) => {
+  const event = req.body;
+  
+  const result = await contiguity.imessage.reply(event, {
+    message: 'Thanks for your iMessage!',
+    attachments: ['https://example.com/response.jpg']
+  });
+  
+  res.json({ success: true });
+});
+```
+
+### Parameters
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The incoming webhook event object containing `data.to` and `data.from`
+</ParamField>
+
+<ParamField path="params" type="Omit<ImessageSendParams, 'to' | 'from'>" required>
+  Send parameters excluding `to` and `from` (automatically populated from event)
+</ParamField>
+
+## Typing Indicators
+
+Show typing indicators to let users know you're composing a response.
+
+<CodeGroup>
+```javascript Start Typing
+await contiguity.imessage.typing({
+  to: '+1234567890',
+  action: 'start',
+  from: '+0987654321'
+});
+```
+
+```javascript Stop Typing
+await contiguity.imessage.typing({
+  to: '+1234567890',
+  action: 'stop',
+  from: '+0987654321'
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="action" type="'start' | 'stop'" required>
+  Start or stop the typing indicator
+</ParamField>
+
+<ParamField path="from" type="string">
+  The sender's phone number
+</ParamField>
+
+## Reactions (Tapbacks)
+
+Add or remove iMessage tapbacks (reactions) to messages.
+
+<CodeGroup>
+```javascript Add Reaction
+const result = await contiguity.imessage.react('add', {
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Original message text',
+  tapback: 'love'
+});
+```
+
+```javascript Remove Reaction
+const result = await contiguity.imessage.react('remove', {
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Original message text',
+  tapback: 'love'
+});
+```
+</CodeGroup>
+
+### Parameters
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction
+</ParamField>
+
+<ParamField path="params" type="object" required>
+  Reaction parameters
+</ParamField>
+
+<ParamField path="params.to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="params.from" type="string" required>
+  The sender's phone number
+</ParamField>
+
+<ParamField path="params.message" type="string" required>
+  The original message text to react to
+</ParamField>
+
+<ParamField path="params.tapback" type="enum" required>
+  The tapback type. One of: `love`, `like`, `dislike`, `laugh`, `emphasize`, `question`
+</ParamField>
+
+## Read Receipts
+
+Mark messages as read.
+
+```javascript
+await contiguity.imessage.read({
+  to: '+1234567890',
+  from: '+0987654321'
+});
+```
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="from" type="string" required>
+  The sender's phone number
+</ParamField>
+
+## Conversation History
+
+Retrieve message history between two phone numbers.
+
+```javascript
+const history = await contiguity.imessage.history({
+  to: '+1234567890',
+  from: '+0987654321',
+  limit: 50
+});
+```
+
+### Parameters
+
+<ParamField path="to" type="string" required>
+  The recipient's phone number
+</ParamField>
+
+<ParamField path="from" type="string" required>
+  The sender's phone number
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum number of messages to retrieve (default: 20)
+</ParamField>
+
+## Getting a Single Message
+
+Retrieve a specific message by its ID.
+
+```javascript
+const message = await contiguity.imessage.get('msg_123456');
+```
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The message ID to retrieve
+</ParamField>
+
+## Complete Conversation Example
+
+```javascript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('your-api-key');
+
+app.post('/webhook/imessage', async (req, res) => {
+  const event = req.body;
+  
+  // Show typing indicator
+  await contiguity.imessage.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'start'
+  });
+  
+  // Simulate processing time
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Stop typing indicator
+  await contiguity.imessage.typing({
+    to: event.data.from,
+    from: event.data.to,
+    action: 'stop'
+  });
+  
+  // Send reply
+  await contiguity.imessage.reply(event, {
+    message: 'Thanks for your message!'
+  });
+  
+  // Mark as read
+  await contiguity.imessage.read({
+    to: event.data.from,
+    from: event.data.to
+  });
+  
+  res.json({ success: true });
+});
+```
+
+## Fallback Strategy Example
+
+```javascript
+// Try iMessage first, fall back to SMS if unavailable
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'This works on iMessage or SMS',
+  from: '+0987654321',
+  fallback: {
+    when: ['imessage_unsupported', 'imessage_fails']
+  }
+});
+
+// Use different number for SMS fallback
+const result2 = await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'Premium message on iMessage, standard on SMS',
+  from: '+0987654321', // iMessage number
+  fallback: {
+    when: ['imessage_unsupported'],
+    from: '+1111111111' // Different SMS number
+  }
+});
+```
+
+## Error Handling
+
+```javascript
+try {
+  const result = await contiguity.imessage.send({
+    to: '+1234567890',
+    message: 'Hello!'
+  });
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('Validation error:', error.errors);
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+<Note>
+  All methods validate input parameters using Zod schemas and throw validation errors for invalid input.
+</Note>
+
+## Best Practices
+
+- Always configure fallback for better delivery rates
+- Use typing indicators for natural conversation flow
+- Send read receipts to acknowledge received messages
+- Limit attachment sizes for faster delivery
+- Use fast_track only for truly urgent messages

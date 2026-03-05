@@ -1,0 +1,165 @@
+---
+title: "Lease Resource"
+description: "Manage phone number leases"
+---
+
+## LeaseResource
+
+The `lease` resource provides methods for leasing and managing phone numbers for sending messages.
+
+### available()
+
+```typescript
+await contiguity.lease.available(): Promise<any>
+```
+
+Get a list of all available phone numbers that can be leased.
+
+```typescript
+const numbers = await contiguity.lease.available();
+console.log(numbers);
+```
+
+### get()
+
+```typescript
+await contiguity.lease.get(number: string): Promise<any>
+```
+
+Get information about a specific phone number's availability.
+
+<ParamField path="number" type="string" required>
+  The phone number in E.164 format (e.g., `+1234567890`).
+</ParamField>
+
+```typescript
+const info = await contiguity.lease.get('+1234567890');
+console.log(info);
+```
+
+### create()
+
+```typescript
+await contiguity.lease.create(
+  number: string,
+  options?: LeaseCreateOptions
+): Promise<any>
+```
+
+Lease a phone number for your account.
+
+<ParamField path="number" type="string" required>
+  The phone number to lease in E.164 format.
+</ParamField>
+
+<ParamField path="options" type="LeaseCreateOptions" optional>
+  <Expandable title="properties">
+    <ParamField path="billing_method" type="'monthly' | 'service_contract'" optional>
+      The billing method for this lease. Defaults to `monthly`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Lease with default billing
+const lease = await contiguity.lease.create('+1234567890');
+
+// Lease with custom billing method
+const lease = await contiguity.lease.create('+1234567890', {
+  billing_method: 'service_contract'
+});
+
+console.log(lease);
+```
+
+### leased()
+
+```typescript
+await contiguity.lease.leased(): Promise<any>
+```
+
+Get a list of all phone numbers currently leased to your account.
+
+```typescript
+const myNumbers = await contiguity.lease.leased();
+console.log(myNumbers);
+```
+
+### details()
+
+```typescript
+await contiguity.lease.details(number: string): Promise<any>
+```
+
+Get detailed information about a specific leased phone number.
+
+<ParamField path="number" type="string" required>
+  The phone number in E.164 format.
+</ParamField>
+
+```typescript
+const details = await contiguity.lease.details('+1234567890');
+console.log(details);
+```
+
+### terminate()
+
+```typescript
+await contiguity.lease.terminate(number: string): Promise<any>
+```
+
+Terminate a phone number lease and release it back to the pool.
+
+<ParamField path="number" type="string" required>
+  The phone number to terminate in E.164 format.
+</ParamField>
+
+```typescript
+await contiguity.lease.terminate('+1234567890');
+console.log('Lease terminated');
+```
+
+### Complete Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Step 1: Find available numbers
+const available = await contiguity.lease.available();
+console.log('Available numbers:', available);
+
+// Step 2: Lease a number
+const number = '+1234567890';
+const lease = await contiguity.lease.create(number, {
+  billing_method: 'monthly'
+});
+console.log('Leased number:', lease);
+
+// Step 3: View all your leased numbers
+const myNumbers = await contiguity.lease.leased();
+console.log('My numbers:', myNumbers);
+
+// Step 4: Get details about a specific number
+const details = await contiguity.lease.details(number);
+console.log('Number details:', details);
+
+// Step 5: Use the number to send messages
+await contiguity.text.send({
+  from: number,
+  to: '+0987654321',
+  message: 'Hello from my leased number!'
+});
+
+// Step 6: Terminate the lease when no longer needed
+await contiguity.lease.terminate(number);
+console.log('Lease terminated');
+```
+
+### Notes
+
+- Phone numbers must be in E.164 format (e.g., `+1234567890`)
+- You must have an active lease on a number before you can send messages from it
+- Terminating a lease may take a few minutes to fully process
+- Some numbers may have restrictions based on your account type

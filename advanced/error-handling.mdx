@@ -1,0 +1,239 @@
+---
+title: 'Error Handling'
+description: 'Handle errors gracefully in your Contiguity integration'
+---
+
+## ContiguityError Class
+
+The SDK throws a custom `ContiguityError` class for all API-related errors. This provides structured error information including status codes, error messages, and additional data.
+
+### Error Structure
+
+```typescript
+class ContiguityError extends Error {
+  message: string;        // Human-readable error message
+  status?: number;        // HTTP status code
+  code?: string;          // Error code identifier
+  data?: ContiguityErrorData;  // Additional error data
+}
+
+interface ContiguityErrorData {
+  agreement_url?: string; // URL to agreement if entitlement required
+}
+```
+
+## Catching Errors
+
+### Basic Error Handling
+
+Wrap SDK calls in try-catch blocks to handle errors:
+
+```typescript
+import { Contiguity, ContiguityError } from '@contiguity/sdk';
+
+const client = new Contiguity();
+
+try {
+  await client.text.send({
+    to: '+15551234567',
+    message: 'Hello!'
+  });
+} catch (error) {
+  if (error instanceof ContiguityError) {
+    console.error('API Error:', error.message);
+    console.error('Status Code:', error.status);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+### Checking Status Codes
+
+Handle different error types based on HTTP status codes:
+
+```typescript
+try {
+  await client.email.send({
+    to: 'user@example.com',
+    from: 'sender@yourdomain.com',
+    subject: 'Welcome',
+    text: 'Welcome to our service!'
+  });
+} catch (error) {
+  if (error instanceof ContiguityError) {
+    switch (error.status) {
+      case 401:
+        console.error('Invalid API key');
+        break;
+      case 403:
+        console.error('Forbidden: Check entitlements');
+        if (error.data?.agreement_url) {
+          console.log('Agreement required:', error.data.agreement_url);
+        }
+        break;
+      case 429:
+        console.error('Rate limit exceeded');
+        break;
+      case 500:
+        console.error('Server error');
+        break;
+      default:
+        console.error('Error:', error.message);
+    }
+  }
+}
+```
+
+## Common Error Scenarios
+
+### Missing or Invalid API Key
+
+The SDK validates your API key on initialization:
+
+```typescript
+try {
+  const client = new Contiguity('invalid_key');
+} catch (error) {
+  // Error: Invalid Contiguity token: key must start with contiguity_sk_.
+  console.error(error.message);
+}
+```
+
+<Tip>
+Always use environment variables for API keys:
+```bash
+export CONTIGUITY_API_KEY=contiguity_sk_...
+```
+</Tip>
+
+### Validation Errors
+
+The SDK validates parameters before sending requests:
+
+```typescript
+try {
+  await client.text.send({
+    to: 'invalid-phone',  // Invalid format
+    message: 'Hello'
+  });
+} catch (error) {
+  // Zod validation error
+  console.error('Validation failed:', error);
+}
+```
+
+### Missing Entitlements
+
+When an entitlement is required, the error includes an agreement URL:
+
+```typescript
+try {
+  await client.imessage.send({
+    to: '+15551234567',
+    message: 'Hello via iMessage'
+  });
+} catch (error) {
+  if (error instanceof ContiguityError && error.data?.agreement_url) {
+    console.log('Please complete agreement:', error.data.agreement_url);
+    // Direct user to agreement_url to enable the feature
+  }
+}
+```
+
+## Best Practices
+
+### 1. Always Use Type Guards
+
+Check error types before accessing properties:
+
+```typescript
+try {
+  await client.text.send(params);
+} catch (error) {
+  if (error instanceof ContiguityError) {
+    // Safe to access ContiguityError properties
+    console.error(error.status, error.message);
+  } else {
+    // Handle unexpected errors
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+### 2. Log Error Details
+
+Capture all error information for debugging:
+
+```typescript
+catch (error) {
+  if (error instanceof ContiguityError) {
+    console.error({
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      data: error.data
+    });
+  }
+}
+```
+
+### 3. Retry with Exponential Backoff
+
+Implement retry logic for transient errors:
+
+```typescript
+async function sendWithRetry(params: TextSendParams, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await client.text.send(params);
+    } catch (error) {
+      if (error instanceof ContiguityError) {
+        // Retry on rate limit or server errors
+        if (error.status === 429 || error.status === 500) {
+          const delay = Math.pow(2, i) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+      throw error; // Don't retry other errors
+    }
+  }
+  throw new Error('Max retries reached');
+}
+```
+
+### 4. Handle Network Errors
+
+Catch network-level failures separately:
+
+```typescript
+try {
+  await client.text.send(params);
+} catch (error) {
+  if (error instanceof ContiguityError) {
+    // API error
+    console.error('API error:', error.message);
+  } else if (error instanceof TypeError && error.message.includes('fetch')) {
+    // Network error
+    console.error('Network error - check connectivity');
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+## Debugging
+
+Enable debug mode to log all API requests:
+
+```typescript
+const client = new Contiguity(undefined, { debug: true });
+
+// Logs:
+// [Contiguity] POST https://api.contiguity.com/send/text { to: '+15551234567', ... }
+```
+
+<Note>
+Debug mode logs request details including the URL and body. Avoid using in production as it may expose sensitive data.
+</Note>

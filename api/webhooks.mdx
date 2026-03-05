@@ -1,0 +1,326 @@
+---
+title: "Webhook Resource"
+description: "Verify and parse incoming webhooks"
+---
+
+## WebhookResource
+
+The `webhook` resource provides methods for verifying webhook signatures and parsing webhook payloads from Contiguity.
+
+### verify()
+
+```typescript
+contiguity.webhook.verify(
+  rawBodyOrReq: string | Buffer | WebhookRequestLike,
+  signatureHeaderOrSecret?: string,
+  secretOrTolerance?: string | number,
+  toleranceSeconds?: number
+): boolean
+```
+
+Verify the HMAC-SHA256 signature of a webhook request to ensure it came from Contiguity.
+
+This method has two calling patterns:
+
+#### Pattern 1: Pass request object
+
+<ParamField path="rawBodyOrReq" type="WebhookRequestLike" required>
+  The incoming request object with `body` or `rawBody` and `headers` properties.
+</ParamField>
+
+<ParamField path="signatureHeaderOrSecret" type="string" optional>
+  Your webhook secret. If not provided, signature verification will fail.
+</ParamField>
+
+<ParamField path="secretOrTolerance" type="number" optional>
+  Tolerance in seconds for timestamp validation. Helps prevent replay attacks.
+</ParamField>
+
+```typescript
+app.post('/webhook', (req, res) => {
+  const isValid = contiguity.webhook.verify(
+    req,
+    'your_webhook_secret',
+    300 // 5 minutes tolerance
+  );
+  
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process webhook...
+  res.sendStatus(200);
+});
+```
+
+#### Pattern 2: Pass raw body and signature
+
+<ParamField path="rawBodyOrReq" type="string | Buffer" required>
+  The raw request body as received (do not parse or modify).
+</ParamField>
+
+<ParamField path="signatureHeaderOrSecret" type="string" required>
+  The value of the `Contiguity-Signature` header.
+</ParamField>
+
+<ParamField path="secretOrTolerance" type="string" required>
+  Your webhook secret.
+</ParamField>
+
+<ParamField path="toleranceSeconds" type="number" optional>
+  Tolerance in seconds for timestamp validation.
+</ParamField>
+
+```typescript
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['contiguity-signature'];
+  const isValid = contiguity.webhook.verify(
+    req.body, // raw buffer
+    signature,
+    'your_webhook_secret',
+    300
+  );
+  
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process webhook...
+  res.sendStatus(200);
+});
+```
+
+### parse()
+
+```typescript
+contiguity.webhook.parse(rawBody: string | Buffer): WebhookEventBase
+```
+
+Parse a raw webhook body into a typed event object.
+
+<ParamField path="rawBody" type="string | Buffer" required>
+  The raw request body.
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Unique identifier for the webhook event.
+</ResponseField>
+
+<ResponseField name="type" type="WebhookEventType">
+  The type of webhook event (e.g., `text.incoming.sms`, `imessage.incoming`, `email.incoming`).
+</ResponseField>
+
+<ResponseField name="timestamp" type="number">
+  Unix timestamp (in seconds) when the event occurred.
+</ResponseField>
+
+<ResponseField name="api_version" type="string">
+  API version that generated this event.
+</ResponseField>
+
+<ResponseField name="data" type="Record<string, unknown>">
+  Event-specific data payload.
+</ResponseField>
+
+```typescript
+app.post('/webhook', express.json(), (req, res) => {
+  const event = contiguity.webhook.parse(req.body);
+  
+  console.log('Event ID:', event.id);
+  console.log('Event type:', event.type);
+  console.log('Timestamp:', new Date(event.timestamp * 1000));
+  console.log('Data:', event.data);
+  
+  res.sendStatus(200);
+});
+```
+
+### Complete Example
+
+```typescript
+import express from 'express';
+import { Contiguity } from '@contiguity/js';
+
+const app = express();
+const contiguity = new Contiguity('contiguity_sk_...');
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+
+app.post('/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    // Step 1: Verify signature
+    const signature = req.headers['contiguity-signature'];
+    const isValid = contiguity.webhook.verify(
+      req.body,
+      signature,
+      WEBHOOK_SECRET,
+      300 // 5 minute tolerance
+    );
+    
+    if (!isValid) {
+      console.error('Invalid webhook signature');
+      return res.status(401).send('Unauthorized');
+    }
+    
+    // Step 2: Parse the event
+    const event = contiguity.webhook.parse(req.body);
+    console.log('Received event:', event.type);
+    
+    // Step 3: Handle different event types
+    switch (event.type) {
+      case 'text.incoming.sms':
+      case 'text.incoming.mms':
+        await handleIncomingText(event);
+        break;
+        
+      case 'imessage.incoming':
+        await handleIncomingImessage(event);
+        break;
+        
+      case 'email.incoming':
+        await handleIncomingEmail(event);
+        break;
+        
+      case 'text.delivery.confirmed':
+        console.log('Message delivered:', event.data.message_id);
+        break;
+        
+      case 'text.delivery.failed':
+        console.log('Message failed:', event.data.message_id);
+        break;
+        
+      default:
+        console.log('Unhandled event type:', event.type);
+    }
+    
+    res.sendStatus(200);
+  }
+);
+
+async function handleIncomingText(event) {
+  const { from, to, body } = event.data;
+  console.log(`Text from ${from}: ${body}`);
+  
+  // Reply to the message
+  await contiguity.text.reply(event, {
+    message: 'Thanks for your message!'
+  });
+}
+
+async function handleIncomingImessage(event) {
+  const { from, to, body } = event.data;
+  console.log(`iMessage from ${from}: ${body}`);
+  
+  // Reply to the message
+  await contiguity.imessage.reply(event, {
+    message: 'Thanks for your iMessage!'
+  });
+}
+
+async function handleIncomingEmail(event) {
+  const { from, to, subject } = event.data;
+  console.log(`Email from ${from}: ${subject}`);
+}
+
+app.listen(3000, () => {
+  console.log('Webhook server listening on port 3000');
+});
+```
+
+### Event Types
+
+The `type` field can be one of:
+
+- `text.incoming.sms` - Incoming SMS message
+- `text.incoming.mms` - Incoming MMS message with attachments
+- `text.delivery.confirmed` - Text message successfully delivered
+- `text.delivery.failed` - Text message delivery failed
+- `imessage.incoming` - Incoming iMessage
+- `email.incoming` - Incoming email
+- `otp.reverse.verified` - Reverse OTP verification completed
+- `numbers.substitution` - Phone number was substituted
+- `identity.verification_session.started` - Identity verification started
+- `identity.verification_session.verified` - Identity successfully verified
+- `identity.verification_session.failed` - Identity verification failed
+
+### Security Best Practices
+
+1. **Always verify signatures** - Never trust webhook data without verification
+2. **Use HTTPS endpoints** - Webhooks should only be sent to secure URLs
+3. **Set a reasonable tolerance** - 300 seconds (5 minutes) is a good default
+4. **Keep secrets secure** - Store webhook secrets in environment variables
+5. **Use raw body** - Don't parse or modify the request body before verification
+6. **Handle errors gracefully** - Always respond with 200 even if processing fails
+
+```typescript
+// Good: Use raw body parser
+app.post('/webhook',
+  express.raw({ type: 'application/json' }),
+  handleWebhook
+);
+
+// Bad: JSON parser modifies the body
+app.post('/webhook',
+  express.json(), // This breaks signature verification!
+  handleWebhook
+);
+```
+
+### Framework-Specific Examples
+
+#### Express
+
+```typescript
+import express from 'express';
+
+app.post('/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const isValid = contiguity.webhook.verify(
+      req.body,
+      req.headers['contiguity-signature'],
+      process.env.WEBHOOK_SECRET
+    );
+    // ...
+  }
+);
+```
+
+#### Next.js
+
+```typescript
+// pages/api/webhook.ts
+export const config = {
+  api: {
+    bodyParser: false, // Disable automatic parsing
+  },
+};
+
+export default async function handler(req, res) {
+  const rawBody = await getRawBody(req);
+  const isValid = contiguity.webhook.verify(
+    rawBody,
+    req.headers['contiguity-signature'],
+    process.env.WEBHOOK_SECRET
+  );
+  // ...
+}
+```
+
+#### Fastify
+
+```typescript
+import Fastify from 'fastify';
+
+fastify.post('/webhook',
+  { config: { rawBody: true } },
+  async (req, reply) => {
+    const isValid = contiguity.webhook.verify(
+      req.rawBody,
+      req.headers['contiguity-signature'],
+      process.env.WEBHOOK_SECRET
+    );
+    // ...
+  }
+);
+```

@@ -1,0 +1,201 @@
+---
+title: "Text Resource"
+description: "Send and manage SMS/MMS text messages"
+---
+
+## TextResource
+
+The `text` resource provides methods for sending SMS/MMS messages, managing reactions, and retrieving message history.
+
+### send()
+
+```typescript
+await contiguity.text.send(params: TextSendParams): Promise<{ message_id: string }>
+```
+
+Send an SMS or MMS text message.
+
+<ParamField path="params" type="TextSendParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number in E.164 format (e.g., `+1234567890`).
+    </ParamField>
+    
+    <ParamField path="message" type="string" required>
+      The text message content to send.
+    </ParamField>
+    
+    <ParamField path="from" type="string" optional>
+      Sender phone number. If not provided, a number will be automatically selected from your leased numbers.
+    </ParamField>
+    
+    <ParamField path="attachments" type="string[]" optional>
+      Array of attachment URLs (max 3). When attachments are included, the message is sent as MMS.
+    </ParamField>
+    
+    <ParamField path="fast_track" type="boolean" optional>
+      Enable fast-track delivery for time-sensitive messages.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent message.
+</ResponseField>
+
+```typescript
+const result = await contiguity.text.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Hello from Contiguity!',
+  attachments: ['https://example.com/image.jpg']
+});
+
+console.log(result.message_id); // "msg_..."
+```
+
+### reply()
+
+```typescript
+await contiguity.text.reply(
+  event: WebhookEventBase,
+  params: Omit<TextSendParams, 'to' | 'from'>
+): Promise<{ message_id: string }>
+```
+
+Reply to an incoming text message webhook. Automatically fills `to` and `from` fields from the webhook event.
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The webhook event received from an incoming text message. The event data must contain `to` and `from` fields.
+</ParamField>
+
+<ParamField path="params" type="Omit<TextSendParams, 'to' | 'from'>" required>
+  Message parameters (same as `send()` but without `to` and `from`).
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent reply.
+</ResponseField>
+
+```typescript
+// In your webhook handler
+app.post('/webhook', async (req, res) => {
+  const event = contiguity.webhook.parse(req.body);
+  
+  if (event.type === 'text.incoming.sms') {
+    await contiguity.text.reply(event, {
+      message: 'Thanks for your message!'
+    });
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+### get()
+
+```typescript
+await contiguity.text.get(id: string): Promise<any>
+```
+
+Retrieve details about a specific message by its ID.
+
+<ParamField path="id" type="string" required>
+  The message ID returned from `send()` or `reply()`.
+</ParamField>
+
+```typescript
+const message = await contiguity.text.get('msg_...');
+console.log(message);
+```
+
+### history()
+
+```typescript
+await contiguity.text.history(params: ConversationHistoryParams): Promise<any>
+```
+
+Retrieve message history for a conversation between two phone numbers.
+
+<ParamField path="params" type="ConversationHistoryParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      One of the phone numbers in the conversation.
+    </ParamField>
+    
+    <ParamField path="from" type="string" required>
+      The other phone number in the conversation.
+    </ParamField>
+    
+    <ParamField path="limit" type="number" optional>
+      Maximum number of messages to retrieve. Defaults to 20.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+const history = await contiguity.text.history({
+  to: '+1234567890',
+  from: '+0987654321',
+  limit: 50
+});
+
+console.log(history);
+```
+
+### react()
+
+```typescript
+await contiguity.text.react(
+  action: 'add' | 'remove',
+  params: TextReactParams
+): Promise<{ message_id: string }>
+```
+
+Add or remove a reaction to a text message.
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction.
+</ParamField>
+
+<ParamField path="params" type="TextReactParams" required>
+  <Expandable title="properties">
+    <ParamField path="message_id" type="string | null" optional>
+      The ID of the message to react to.
+    </ParamField>
+    
+    <ParamField path="to" type="string | null" optional>
+      The recipient phone number.
+    </ParamField>
+    
+    <ParamField path="from" type="string | null" optional>
+      The sender phone number.
+    </ParamField>
+    
+    <ParamField path="message" type="string | null" optional>
+      The message text to react to.
+    </ParamField>
+    
+    <ParamField path="reaction" type="enum" required>
+      The type of reaction. One of: `love`, `thumbsup`, `thumbsdown`, `haha`, `emphasized`, `questioned`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the reaction.
+</ResponseField>
+
+```typescript
+// Add a reaction
+await contiguity.text.react('add', {
+  message_id: 'msg_...',
+  reaction: 'love'
+});
+
+// Remove a reaction
+await contiguity.text.react('remove', {
+  message_id: 'msg_...',
+  reaction: 'love'
+});
+```

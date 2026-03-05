@@ -1,0 +1,271 @@
+---
+title: "Entitlements"
+description: "Manage feature access and permissions for your account"
+---
+
+## Overview
+
+Entitlements control which features and capabilities are available to your account. You can check available entitlements, enable new features, and manage access permissions through the Entitlements API.
+
+## Quick Example
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// List all available entitlements
+const entitlements = await contiguity.entitlements.list();
+
+// Check a specific entitlement
+const imessage = await contiguity.entitlements.get('imessage');
+
+// Apply an entitlement
+await contiguity.entitlements.apply('imessage');
+```
+
+## Listing Entitlements
+
+Get all entitlements available to your account:
+
+```typescript
+const entitlements = await contiguity.entitlements.list();
+
+console.log('Available entitlements:', entitlements);
+```
+
+This returns information about all entitlements, including:
+- Entitlement name and description
+- Whether it's currently enabled
+- Any usage limits or quotas
+
+## Checking Specific Entitlements
+
+Retrieve details about a specific entitlement:
+
+```typescript
+const entitlement = await contiguity.entitlements.get('imessage');
+
+console.log('iMessage entitlement:', entitlement);
+console.log('Status:', entitlement.enabled ? 'Enabled' : 'Disabled');
+```
+
+<Tip>
+  Check entitlements before using features to provide better error messages to your users.
+</Tip>
+
+## Applying Entitlements
+
+Enable a feature by applying its entitlement:
+
+```typescript
+await contiguity.entitlements.apply('imessage');
+
+console.log('iMessage entitlement applied');
+```
+
+<Note>
+  Some entitlements may require approval or additional setup before they can be applied.
+</Note>
+
+## Revoking Entitlements
+
+Disable a feature by revoking its entitlement:
+
+```typescript
+await contiguity.entitlements.revoke('imessage');
+
+console.log('iMessage entitlement revoked');
+```
+
+<Warning>
+  Revoking an entitlement will immediately disable the associated feature. Any active operations using that feature may fail.
+</Warning>
+
+## Common Entitlements
+
+Here are some commonly used entitlements in the Contiguity SDK:
+
+<CardGroup cols={2}>
+  <Card title="imessage" icon="comment-dots">
+    Send and receive iMessages
+  </Card>
+  <Card title="whatsapp" icon="whatsapp">
+    Send and receive WhatsApp messages
+  </Card>
+  <Card title="voice" icon="phone">
+    Make and receive voice calls
+  </Card>
+  <Card title="mms" icon="image">
+    Send and receive MMS (multimedia messages)
+  </Card>
+  <Card title="international" icon="globe">
+    Send messages to international numbers
+  </Card>
+  <Card title="premium-numbers" icon="star">
+    Send messages to premium rate numbers
+  </Card>
+</CardGroup>
+
+## Checking Before Usage
+
+It's good practice to check entitlements before attempting to use a feature:
+
+```typescript
+async function sendImessage(to: string, message: string) {
+  // Check if iMessage is enabled
+  const imessageEntitlement = await contiguity.entitlements.get('imessage');
+  
+  if (!imessageEntitlement.enabled) {
+    throw new Error('iMessage is not enabled for this account');
+  }
+  
+  // Proceed with sending
+  return contiguity.imessage.send({
+    to,
+    message
+  });
+}
+```
+
+## Complete Workflow
+
+Here's a complete example of managing entitlements:
+
+```typescript
+import { Contiguity } from 'contiguity';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+async function manageEntitlements() {
+  // 1. List all entitlements
+  const all = await contiguity.entitlements.list();
+  console.log('All entitlements:', all);
+  
+  // 2. Check specific entitlement
+  const imessage = await contiguity.entitlements.get('imessage');
+  console.log('iMessage status:', imessage.enabled ? 'Enabled' : 'Disabled');
+  
+  // 3. Apply if not enabled
+  if (!imessage.enabled) {
+    console.log('Enabling iMessage...');
+    await contiguity.entitlements.apply('imessage');
+    console.log('iMessage enabled');
+  }
+  
+  // 4. Use the feature
+  await contiguity.imessage.send({
+    to: '+1234567890',
+    message: 'Hello from iMessage!'
+  });
+  
+  // 5. Check usage or quotas
+  const updated = await contiguity.entitlements.get('imessage');
+  console.log('Updated status:', updated);
+  
+  // 6. Revoke if needed (optional)
+  // await contiguity.entitlements.revoke('imessage');
+}
+
+manageEntitlements();
+```
+
+## Error Handling
+
+Handle entitlement errors gracefully:
+
+```typescript
+import { ContiguityError } from 'contiguity';
+
+async function sendWithEntitlementCheck() {
+  try {
+    await contiguity.imessage.send({
+      to: '+1234567890',
+      message: 'Hello!'
+    });
+  } catch (error) {
+    if (error instanceof ContiguityError) {
+      if (error.code === 'missing_entitlement') {
+        console.log('iMessage is not enabled. Apply the entitlement first.');
+        
+        // Optionally apply automatically
+        await contiguity.entitlements.apply('imessage');
+        
+        // Retry
+        return contiguity.imessage.send({
+          to: '+1234567890',
+          message: 'Hello!'
+        });
+      }
+    }
+    throw error;
+  }
+}
+```
+
+## Feature Gating
+
+Use entitlements to implement feature gating in your application:
+
+```typescript
+async function getAvailableFeatures() {
+  const entitlements = await contiguity.entitlements.list();
+  
+  const features = {
+    sms: true, // Always available
+    email: true, // Always available
+    imessage: entitlements.find(e => e.name === 'imessage')?.enabled || false,
+    whatsapp: entitlements.find(e => e.name === 'whatsapp')?.enabled || false,
+    voice: entitlements.find(e => e.name === 'voice')?.enabled || false,
+  };
+  
+  return features;
+}
+
+// Use in your UI
+const features = await getAvailableFeatures();
+
+if (features.imessage) {
+  console.log('Show iMessage option in UI');
+}
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Feature Access Control" icon="shield-check">
+    Control which features users can access based on their subscription or plan.
+  </Card>
+  <Card title="Gradual Rollout" icon="rocket">
+    Enable new features incrementally as they become available.
+  </Card>
+  <Card title="Compliance" icon="scale-balanced">
+    Ensure only approved features are used in regulated environments.
+  </Card>
+  <Card title="Usage Monitoring" icon="chart-line">
+    Track which features are being used and manage quotas.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  Cache entitlement status locally to avoid making API calls on every operation. Refresh periodically or when operations fail due to missing entitlements.
+</Tip>
+
+- **Check before use** - Verify entitlements before attempting to use features
+- **Handle gracefully** - Provide clear error messages when features aren't available
+- **Cache status** - Don't check entitlements on every single request
+- **Monitor changes** - Be aware that entitlements can change over time
+- **Document requirements** - Clearly communicate which entitlements your application needs
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/advanced/error-handling">
+    Learn how to handle entitlement errors
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/entitlements">
+    View complete API documentation
+  </Card>
+</CardGroup>

@@ -1,0 +1,165 @@
+---
+title: "Entitlements Resource"
+description: "Manage account entitlements and permissions"
+---
+
+## EntitlementsResource
+
+The `entitlements` resource provides methods for managing special features and permissions on your Contiguity account.
+
+### list()
+
+```typescript
+await contiguity.entitlements.list(): Promise<any>
+```
+
+Get a list of all available entitlements and their status.
+
+```typescript
+const entitlements = await contiguity.entitlements.list();
+console.log(entitlements);
+```
+
+### get()
+
+```typescript
+await contiguity.entitlements.get(name: string): Promise<any>
+```
+
+Get information about a specific entitlement.
+
+<ParamField path="name" type="string" required>
+  The name of the entitlement to retrieve.
+</ParamField>
+
+```typescript
+const entitlement = await contiguity.entitlements.get('imessage');
+console.log(entitlement);
+```
+
+### apply()
+
+```typescript
+await contiguity.entitlements.apply(name: string): Promise<any>
+```
+
+Apply an entitlement to your account. This enables a specific feature or increases limits.
+
+<ParamField path="name" type="string" required>
+  The name of the entitlement to apply.
+</ParamField>
+
+```typescript
+const result = await contiguity.entitlements.apply('imessage');
+console.log('Entitlement applied:', result);
+```
+
+### revoke()
+
+```typescript
+await contiguity.entitlements.revoke(name: string): Promise<any>
+```
+
+Revoke an entitlement from your account. This disables a feature or removes access.
+
+<ParamField path="name" type="string" required>
+  The name of the entitlement to revoke.
+</ParamField>
+
+```typescript
+await contiguity.entitlements.revoke('imessage');
+console.log('Entitlement revoked');
+```
+
+### Complete Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Step 1: List all available entitlements
+const all = await contiguity.entitlements.list();
+console.log('Available entitlements:', all);
+
+// Step 2: Check if a specific entitlement is available
+const imessage = await contiguity.entitlements.get('imessage');
+if (imessage.available) {
+  console.log('iMessage entitlement is available');
+}
+
+// Step 3: Apply an entitlement
+if (!imessage.active) {
+  await contiguity.entitlements.apply('imessage');
+  console.log('iMessage entitlement activated');
+}
+
+// Step 4: Use the entitlement
+await contiguity.imessage.send({
+  to: '+1234567890',
+  message: 'Hello via iMessage!'
+});
+
+// Step 5: Revoke entitlement when no longer needed
+await contiguity.entitlements.revoke('imessage');
+console.log('iMessage entitlement deactivated');
+```
+
+### Common Entitlements
+
+Here are some common entitlements you might work with:
+
+- `imessage` - Enable iMessage sending capabilities
+- `whatsapp` - Enable WhatsApp messaging
+- `voice` - Enable voice calling features
+- `higher_limits` - Increase rate limits and quotas
+- `priority_support` - Access to priority support channels
+- `custom_branding` - Remove Contiguity branding from messages
+
+### Checking Entitlement Status
+
+```typescript
+const checkEntitlement = async (name: string) => {
+  try {
+    const entitlement = await contiguity.entitlements.get(name);
+    
+    if (entitlement.active) {
+      console.log(`${name} is active`);
+    } else if (entitlement.available) {
+      console.log(`${name} is available but not active`);
+    } else {
+      console.log(`${name} is not available for your account`);
+    }
+    
+    return entitlement;
+  } catch (error) {
+    console.error(`Error checking ${name}:`, error);
+  }
+};
+
+await checkEntitlement('imessage');
+await checkEntitlement('whatsapp');
+```
+
+### Error Handling
+
+```typescript
+try {
+  await contiguity.entitlements.apply('premium_feature');
+} catch (error) {
+  if (error.message.includes('not available')) {
+    console.log('This entitlement requires an upgrade');
+  } else if (error.message.includes('already active')) {
+    console.log('Entitlement is already applied');
+  } else {
+    console.error('Error applying entitlement:', error);
+  }
+}
+```
+
+### Notes
+
+- Some entitlements may require account upgrades or additional billing
+- Entitlements may have prerequisites (e.g., domain verification for certain features)
+- Revoking an entitlement doesn't immediately disable in-flight operations
+- Check entitlement status before attempting to use premium features

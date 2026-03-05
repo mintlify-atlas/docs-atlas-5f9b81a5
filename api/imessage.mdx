@@ -1,0 +1,286 @@
+---
+title: "iMessage Resource"
+description: "Send and manage iMessage conversations"
+---
+
+## ImessageResource
+
+The `imessage` resource provides methods for sending iMessages, managing typing indicators, reactions, and read receipts.
+
+### send()
+
+```typescript
+await contiguity.imessage.send(params: ImessageSendParams): Promise<{ message_id: string }>
+```
+
+Send an iMessage to a recipient.
+
+<ParamField path="params" type="ImessageSendParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number or email address.
+    </ParamField>
+    
+    <ParamField path="message" type="string" required>
+      The message content to send.
+    </ParamField>
+    
+    <ParamField path="from" type="string" optional>
+      Sender phone number. If not provided, a number will be automatically selected.
+    </ParamField>
+    
+    <ParamField path="attachments" type="string[]" optional>
+      Array of attachment URLs to include with the message.
+    </ParamField>
+    
+    <ParamField path="fallback" type="object" optional>
+      Fallback configuration for when iMessage fails or is unsupported.
+      <Expandable title="properties">
+        <ParamField path="when" type="array" required>
+          Array of conditions: `imessage_unsupported` or `imessage_fails`.
+        </ParamField>
+        <ParamField path="from" type="string" optional>
+          Fallback sender number for SMS delivery.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+    
+    <ParamField path="fast_track" type="boolean" optional>
+      Enable fast-track delivery for time-sensitive messages.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent message.
+</ResponseField>
+
+```typescript
+const result = await contiguity.imessage.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Hello via iMessage!',
+  attachments: ['https://example.com/image.jpg'],
+  fallback: {
+    when: ['imessage_unsupported', 'imessage_fails'],
+    from: '+0987654321'
+  }
+});
+
+console.log(result.message_id); // "msg_..."
+```
+
+### reply()
+
+```typescript
+await contiguity.imessage.reply(
+  event: WebhookEventBase,
+  params: Omit<ImessageSendParams, 'to' | 'from'>
+): Promise<{ message_id: string }>
+```
+
+Reply to an incoming iMessage webhook. Automatically fills `to` and `from` fields from the webhook event.
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The webhook event received from an incoming iMessage.
+</ParamField>
+
+<ParamField path="params" type="Omit<ImessageSendParams, 'to' | 'from'>" required>
+  Message parameters (same as `send()` but without `to` and `from`).
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent reply.
+</ResponseField>
+
+```typescript
+app.post('/webhook', async (req, res) => {
+  const event = contiguity.webhook.parse(req.body);
+  
+  if (event.type === 'imessage.incoming') {
+    await contiguity.imessage.reply(event, {
+      message: 'Thanks for your iMessage!'
+    });
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+### typing()
+
+```typescript
+await contiguity.imessage.typing(params: ImessageTypingParams): Promise<any>
+```
+
+Send a typing indicator to show that you're composing a message.
+
+<ParamField path="params" type="ImessageTypingParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number or email address.
+    </ParamField>
+    
+    <ParamField path="action" type="'start' | 'stop'" required>
+      Whether to start or stop the typing indicator.
+    </ParamField>
+    
+    <ParamField path="from" type="string" optional>
+      Sender phone number.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Show typing indicator
+await contiguity.imessage.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'start'
+});
+
+// Simulate composing message...
+await new Promise(resolve => setTimeout(resolve, 2000));
+
+// Stop typing indicator and send message
+await contiguity.imessage.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'stop'
+});
+
+await contiguity.imessage.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Here is my response!'
+});
+```
+
+### get()
+
+```typescript
+await contiguity.imessage.get(id: string): Promise<any>
+```
+
+Retrieve details about a specific iMessage by its ID.
+
+<ParamField path="id" type="string" required>
+  The message ID returned from `send()` or `reply()`.
+</ParamField>
+
+```typescript
+const message = await contiguity.imessage.get('msg_...');
+console.log(message);
+```
+
+### history()
+
+```typescript
+await contiguity.imessage.history(params: ConversationHistoryParams): Promise<any>
+```
+
+Retrieve iMessage history for a conversation.
+
+<ParamField path="params" type="ConversationHistoryParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      One of the participants in the conversation.
+    </ParamField>
+    
+    <ParamField path="from" type="string" required>
+      The other participant in the conversation.
+    </ParamField>
+    
+    <ParamField path="limit" type="number" optional>
+      Maximum number of messages to retrieve. Defaults to 20.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+const history = await contiguity.imessage.history({
+  to: '+1234567890',
+  from: '+0987654321',
+  limit: 50
+});
+```
+
+### react()
+
+```typescript
+await contiguity.imessage.react(
+  action: 'add' | 'remove',
+  params: ImessageReactParams
+): Promise<any>
+```
+
+Add or remove a tapback reaction to an iMessage.
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction.
+</ParamField>
+
+<ParamField path="params" type="ImessageReactParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number or email address.
+    </ParamField>
+    
+    <ParamField path="from" type="string" required>
+      Sender phone number.
+    </ParamField>
+    
+    <ParamField path="tapback" type="enum" required>
+      The tapback type. One of: `love`, `like`, `dislike`, `laugh`, `emphasize`, `question`.
+    </ParamField>
+    
+    <ParamField path="message" type="string" required>
+      The message text to react to.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Add a tapback
+await contiguity.imessage.react('add', {
+  to: '+1234567890',
+  from: '+0987654321',
+  tapback: 'love',
+  message: 'Thanks for the help!'
+});
+
+// Remove a tapback
+await contiguity.imessage.react('remove', {
+  to: '+1234567890',
+  from: '+0987654321',
+  tapback: 'love',
+  message: 'Thanks for the help!'
+});
+```
+
+### read()
+
+```typescript
+await contiguity.imessage.read(params: ImessageReadParams): Promise<any>
+```
+
+Send a read receipt for a conversation.
+
+<ParamField path="params" type="ImessageReadParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      The recipient phone number or email address.
+    </ParamField>
+    
+    <ParamField path="from" type="string" required>
+      The sender phone number.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+await contiguity.imessage.read({
+  to: '+1234567890',
+  from: '+0987654321'
+});
+```

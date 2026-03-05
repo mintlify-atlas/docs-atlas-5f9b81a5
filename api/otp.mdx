@@ -1,0 +1,219 @@
+---
+title: "OTP Resource"
+description: "Generate and verify one-time passwords"
+---
+
+## OtpResource
+
+The `otp` resource provides methods for creating, verifying, and managing one-time passwords for authentication flows.
+
+### new()
+
+```typescript
+await contiguity.otp.new(params: OtpNewParams): Promise<{ otp_id: string }>
+```
+
+Generate and send a new one-time password to a phone number.
+
+<ParamField path="params" type="OtpNewParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Phone number to send the OTP to, in E.164 format (e.g., `+1234567890`).
+    </ParamField>
+    
+    <ParamField path="language" type="string" required>
+      Language code for the OTP message (e.g., `en`, `es`, `fr`).
+    </ParamField>
+    
+    <ParamField path="name" type="string" required>
+      Your application or company name to include in the message.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="otp_id" type="string">
+  Unique identifier for the OTP session. Use this to verify the code later.
+</ResponseField>
+
+```typescript
+const result = await contiguity.otp.new({
+  to: '+1234567890',
+  language: 'en',
+  name: 'MyApp'
+});
+
+console.log(result.otp_id); // "otp_..."
+```
+
+### verify()
+
+```typescript
+await contiguity.otp.verify(params: OtpVerifyParams): Promise<{ verified: boolean }>
+```
+
+Verify an OTP code entered by the user.
+
+<ParamField path="params" type="OtpVerifyParams" required>
+  <Expandable title="properties">
+    <ParamField path="otp_id" type="string" required>
+      The OTP session ID returned from `new()`.
+    </ParamField>
+    
+    <ParamField path="otp" type="string" required>
+      The OTP code entered by the user.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="verified" type="boolean">
+  `true` if the OTP code is correct, `false` otherwise.
+</ResponseField>
+
+```typescript
+const result = await contiguity.otp.verify({
+  otp_id: 'otp_...',
+  otp: '123456'
+});
+
+if (result.verified) {
+  console.log('OTP verified successfully!');
+} else {
+  console.log('Invalid OTP code.');
+}
+```
+
+### resend()
+
+```typescript
+await contiguity.otp.resend(params: OtpResendParams): Promise<{ resent: boolean }>
+```
+
+Resend the OTP code to the same phone number.
+
+<ParamField path="params" type="OtpResendParams" required>
+  <Expandable title="properties">
+    <ParamField path="otp_id" type="string" required>
+      The OTP session ID to resend.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="resent" type="boolean">
+  `true` if the OTP was successfully resent.
+</ResponseField>
+
+```typescript
+const result = await contiguity.otp.resend({
+  otp_id: 'otp_...'
+});
+
+console.log(result.resent); // true
+```
+
+### reverse.initiate()
+
+```typescript
+await contiguity.otp.reverse.initiate(params: OtpReverseInitiateParams): Promise<any>
+```
+
+Initiate a reverse OTP flow where the user calls or texts a number to verify.
+
+<ParamField path="params" type="OtpReverseInitiateParams" required>
+  <Expandable title="properties">
+    <ParamField path="number" type="string" required>
+      The phone number to verify.
+    </ParamField>
+    
+    <ParamField path="factor" type="string" optional>
+      Custom verification factor (max 16 characters).
+    </ParamField>
+    
+    <ParamField path="to" type="string" optional>
+      Destination number for the verification.
+    </ParamField>
+    
+    <ParamField path="language" type="string" optional>
+      Language code for instructions.
+    </ParamField>
+    
+    <ParamField path="success_url" type="string" optional>
+      URL to redirect to after successful verification.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+const result = await contiguity.otp.reverse.initiate({
+  number: '+1234567890',
+  language: 'en',
+  success_url: 'https://yourapp.com/verified'
+});
+
+console.log(result);
+```
+
+### reverse.verify()
+
+```typescript
+await contiguity.otp.reverse.verify(otp_id: string): Promise<any>
+```
+
+Check the verification status of a reverse OTP session.
+
+<ParamField path="otp_id" type="string" required>
+  The reverse OTP session ID.
+</ParamField>
+
+```typescript
+const status = await contiguity.otp.reverse.verify('otp_...');
+console.log(status);
+```
+
+### reverse.cancel()
+
+```typescript
+await contiguity.otp.reverse.cancel(otp_id: string): Promise<any>
+```
+
+Cancel an ongoing reverse OTP session.
+
+<ParamField path="otp_id" type="string" required>
+  The reverse OTP session ID to cancel.
+</ParamField>
+
+```typescript
+await contiguity.otp.reverse.cancel('otp_...');
+```
+
+### Complete Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Step 1: Send OTP
+const { otp_id } = await contiguity.otp.new({
+  to: '+1234567890',
+  language: 'en',
+  name: 'MyApp'
+});
+
+// Step 2: User enters code, verify it
+const userCode = '123456'; // From user input
+const { verified } = await contiguity.otp.verify({
+  otp_id,
+  otp: userCode
+});
+
+if (verified) {
+  // Proceed with authentication
+  console.log('User verified!');
+} else {
+  // Show error or allow resend
+  console.log('Invalid code');
+}
+
+// Step 3 (optional): Resend if needed
+await contiguity.otp.resend({ otp_id });
+```

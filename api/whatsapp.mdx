@@ -1,0 +1,236 @@
+---
+title: "WhatsApp Resource"
+description: "Send and manage WhatsApp messages"
+---
+
+## WhatsappResource
+
+The `whatsapp` resource provides methods for sending WhatsApp messages, managing typing indicators, and reactions.
+
+### send()
+
+```typescript
+await contiguity.whatsapp.send(params: WhatsappSendParams): Promise<{ message_id: string }>
+```
+
+Send a WhatsApp message to a recipient.
+
+<ParamField path="params" type="WhatsappSendParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number in E.164 format (e.g., `+1234567890`).
+    </ParamField>
+    
+    <ParamField path="message" type="string" required>
+      The message content to send.
+    </ParamField>
+    
+    <ParamField path="from" type="string" optional>
+      Sender phone number. If not provided, a number will be automatically selected.
+    </ParamField>
+    
+    <ParamField path="attachments" type="string[]" optional>
+      Array of attachment URLs to include with the message.
+    </ParamField>
+    
+    <ParamField path="fallback" type="object" optional>
+      Fallback configuration for when WhatsApp fails or is unsupported.
+      <Expandable title="properties">
+        <ParamField path="when" type="array" required>
+          Array of conditions: `whatsapp_unsupported` or `whatsapp_fails`.
+        </ParamField>
+        <ParamField path="from" type="string" optional>
+          Fallback sender number for SMS delivery.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+    
+    <ParamField path="fast_track" type="boolean" optional>
+      Enable fast-track delivery for time-sensitive messages.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent message.
+</ResponseField>
+
+```typescript
+const result = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Hello via WhatsApp!',
+  attachments: ['https://example.com/document.pdf'],
+  fallback: {
+    when: ['whatsapp_unsupported', 'whatsapp_fails'],
+    from: '+0987654321'
+  }
+});
+
+console.log(result.message_id); // "msg_..."
+```
+
+### reply()
+
+```typescript
+await contiguity.whatsapp.reply(
+  event: WebhookEventBase,
+  params: Omit<WhatsappSendParams, 'to' | 'from'>
+): Promise<{ message_id: string }>
+```
+
+Reply to an incoming WhatsApp webhook. Automatically fills `to` and `from` fields from the webhook event.
+
+<ParamField path="event" type="WebhookEventBase" required>
+  The webhook event received from an incoming WhatsApp message.
+</ParamField>
+
+<ParamField path="params" type="Omit<WhatsappSendParams, 'to' | 'from'>" required>
+  Message parameters (same as `send()` but without `to` and `from`).
+</ParamField>
+
+<ResponseField name="message_id" type="string">
+  Unique identifier for the sent reply.
+</ResponseField>
+
+```typescript
+app.post('/webhook', async (req, res) => {
+  const event = contiguity.webhook.parse(req.body);
+  
+  if (event.type === 'whatsapp.incoming') {
+    await contiguity.whatsapp.reply(event, {
+      message: 'Thanks for your WhatsApp message!'
+    });
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+### typing()
+
+```typescript
+await contiguity.whatsapp.typing(params: WhatsappTypingParams): Promise<any>
+```
+
+Send a typing indicator to show that you're composing a message.
+
+<ParamField path="params" type="WhatsappTypingParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number in E.164 format.
+    </ParamField>
+    
+    <ParamField path="action" type="'start' | 'stop'" required>
+      Whether to start or stop the typing indicator.
+    </ParamField>
+    
+    <ParamField path="from" type="string" optional>
+      Sender phone number.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Show typing indicator
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'start'
+});
+
+// Simulate composing message...
+await new Promise(resolve => setTimeout(resolve, 2000));
+
+// Stop typing indicator and send message
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'stop'
+});
+
+await contiguity.whatsapp.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Here is my response!'
+});
+```
+
+### react()
+
+```typescript
+await contiguity.whatsapp.react(
+  action: 'add' | 'remove',
+  params: WhatsappReactParams
+): Promise<any>
+```
+
+Add or remove a reaction to a WhatsApp message.
+
+<ParamField path="action" type="'add' | 'remove'" required>
+  Whether to add or remove the reaction.
+</ParamField>
+
+<ParamField path="params" type="WhatsappReactParams" required>
+  <Expandable title="properties">
+    <ParamField path="to" type="string" required>
+      Recipient phone number.
+    </ParamField>
+    
+    <ParamField path="reaction" type="string | null" optional>
+      The emoji reaction to add. To remove a reaction, pass `null` or use `action: 'remove'`.
+    </ParamField>
+    
+    <ParamField path="message" type="string | null" optional>
+      The message text to react to.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```typescript
+// Add a reaction
+await contiguity.whatsapp.react('add', {
+  to: '+1234567890',
+  reaction: '👍',
+  message: 'Thanks for the help!'
+});
+
+// Remove a reaction
+await contiguity.whatsapp.react('remove', {
+  to: '+1234567890',
+  reaction: '👍',
+  message: 'Thanks for the help!'
+});
+```
+
+### Complete Example
+
+```typescript
+import { Contiguity } from '@contiguity/js';
+
+const contiguity = new Contiguity('contiguity_sk_...');
+
+// Send a message with typing indicator
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'start'
+});
+
+await new Promise(resolve => setTimeout(resolve, 1500));
+
+const { message_id } = await contiguity.whatsapp.send({
+  to: '+1234567890',
+  from: '+0987654321',
+  message: 'Hello! How can I help you today?',
+  attachments: ['https://example.com/menu.pdf']
+});
+
+await contiguity.whatsapp.typing({
+  to: '+1234567890',
+  from: '+0987654321',
+  action: 'stop'
+});
+
+console.log('Message sent:', message_id);
+```
