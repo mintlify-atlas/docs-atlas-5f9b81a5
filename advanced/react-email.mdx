@@ -36,7 +36,7 @@ React Email requires `react` and `react-dom` as peer dependencies.
 Pass React components directly to the `react` parameter:
 
 ```typescript
-import { Contiguity } from '@contiguity/sdk';
+import { Contiguity } from 'contiguity';
 import { Html, Text, Button } from '@react-email/components';
 import * as React from 'react';
 
@@ -67,7 +67,7 @@ The SDK automatically:
 For more control, use the `renderReactEmail` function:
 
 ```typescript
-import { Contiguity, renderReactEmail } from '@contiguity/sdk';
+import { Contiguity, renderReactEmail } from 'contiguity';
 import { WelcomeEmail } from './emails/welcome';
 
 const client = new Contiguity();
@@ -238,7 +238,7 @@ await client.email.send({
 ### Pre-rendering Templates
 
 ```typescript
-import { renderReactEmail } from '@contiguity/sdk';
+import { renderReactEmail } from 'contiguity';
 import { NotificationEmail } from './emails/notification';
 
 // Render once
@@ -484,7 +484,7 @@ export function EmailLayout({ children }: EmailLayoutProps) {
 Handle missing dependencies gracefully:
 
 ```typescript
-import { ContiguityError, renderReactEmail } from '@contiguity/sdk';
+import { ContiguityError, renderReactEmail } from 'contiguity';
 
 try {
   const { html, text } = await renderReactEmail(<WelcomeEmail name="Alice" />);

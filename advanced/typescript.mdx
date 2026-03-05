@@ -42,7 +42,7 @@ import {
   verifyWebhookSignature,
   parseWebhookPayload,
   renderReactEmail
-} from '@contiguity/sdk';
+} from 'contiguity';
 ```
 
 ## Type Safety Benefits
@@ -52,7 +52,7 @@ import {
 TypeScript catches invalid parameters at compile time:
 
 ```typescript
-import { Contiguity, TextSendParams } from '@contiguity/sdk';
+import { Contiguity, TextSendParams } from 'contiguity';
 
 const client = new Contiguity();
 
@@ -75,7 +75,7 @@ const invalidParams: TextSendParams = {
 Get intelligent suggestions as you type:
 
 ```typescript
-import { ImessageReactParams } from '@contiguity/sdk';
+import { ImessageReactParams } from 'contiguity';
 
 const params: ImessageReactParams = {
   to: '+15551234567',
@@ -305,7 +305,7 @@ import {
   WebhookEventBase, 
   TextIncomingData,
   ImessageIncomingData 
-} from '@contiguity/sdk';
+} from 'contiguity';
 
 function handleWebhook(event: WebhookEventBase) {
   switch (event.type) {
@@ -366,7 +366,7 @@ class ContiguityError extends Error {
 ### Reply to Webhooks
 
 ```typescript
-import { WebhookEventBase, TextSendParams } from '@contiguity/sdk';
+import { WebhookEventBase, TextSendParams } from 'contiguity';
 
 async function handleIncoming(event: WebhookEventBase) {
   if (event.type === 'text.incoming.sms') {
@@ -381,7 +381,7 @@ async function handleIncoming(event: WebhookEventBase) {
 ### Conversation History
 
 ```typescript
-import { ConversationHistoryParams } from '@contiguity/sdk';
+import { ConversationHistoryParams } from 'contiguity';
 
 const params: ConversationHistoryParams = {
   to: '+15551234567',

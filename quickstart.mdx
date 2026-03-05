@@ -102,15 +102,18 @@ const contiguity = new Contiguity('contiguity_sk_your_token_here');
       message: "Hello from Contiguity!"
     });
 
-    console.log('Message sent:', response.data.message_id);
+    console.log('Message sent:', response.message_id);
     ```
 
     **Response:**
     ```json
     {
-      "success": true,
-      "data": {
-        "message_id": "msg_abc123..."
+      "message_id": "msg_abc123...",
+      "metadata": {
+        "id": "req_...",
+        "timestamp": "1234567890",
+        "api_version": "v1",
+        "object": "text_message"
       }
     }
     ```
@@ -128,7 +131,7 @@ const contiguity = new Contiguity('contiguity_sk_your_token_here');
       html: "<h1>Welcome!</h1><p>Thanks for signing up!</p>"
     });
 
-    console.log('Email sent:', response.data.email_id);
+    console.log('Email sent:', response.email_id);
     ```
 
     **Response:**
@@ -186,7 +189,7 @@ const contiguity = new Contiguity('contiguity_sk_your_token_here');
       message: "Hello via iMessage!"
     });
 
-    console.log('iMessage sent:', response.data.message_id);
+    console.log('iMessage sent:', response.message_id);
     ```
   </Tab>
 
@@ -199,7 +202,7 @@ const contiguity = new Contiguity('contiguity_sk_your_token_here');
       message: "Hello via WhatsApp!"
     });
 
-    console.log('WhatsApp message sent:', response.data.message_id);
+    console.log('WhatsApp message sent:', response.message_id);
     ```
   </Tab>
 </Tabs>

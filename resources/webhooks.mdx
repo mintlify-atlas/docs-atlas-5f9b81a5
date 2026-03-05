@@ -91,19 +91,21 @@ console.log('Event data:', event.data);
 
 Contiguity sends different types of webhook events:
 
-<Accordion title="text.incoming">
-  Incoming SMS/text message received
+<Accordion title="text.incoming.sms / text.incoming.mms">
+  Incoming SMS or MMS message received
   
   ```typescript
   {
-    type: 'text.incoming',
+    type: 'text.incoming.sms', // or 'text.incoming.mms'
     id: 'evt_...',
     timestamp: 1234567890,
+    api_version: 'v2',
     data: {
       from: '+1234567890',
       to: '+19876543210',
-      message: 'Hello!',
-      message_id: 'msg_...'
+      body: 'Hello!',
+      timestamp: 1234567890,
+      attachments: [] // Only for MMS
     }
   }
   ```
@@ -117,28 +119,33 @@ Contiguity sends different types of webhook events:
     type: 'imessage.incoming',
     id: 'evt_...',
     timestamp: 1234567890,
+    api_version: 'v2',
     data: {
       from: '+1234567890',
       to: '+19876543210',
-      message: 'Hello from iMessage!',
-      message_id: 'msg_...'
+      body: 'Hello from iMessage!',
+      timestamp: 1234567890,
+      attachments: []
     }
   }
   ```
 </Accordion>
 
-<Accordion title="text.delivery">
+<Accordion title="text.delivery.confirmed / text.delivery.failed">
   Message delivery status update
   
   ```typescript
   {
-    type: 'text.delivery',
+    type: 'text.delivery.confirmed', // or 'text.delivery.failed'
     id: 'evt_...',
     timestamp: 1234567890,
+    api_version: 'v2',
     data: {
+      from: '+1234567890',
+      to: '+19876543210',
       message_id: 'msg_...',
-      status: 'delivered',
-      to: '+1234567890'
+      timestamp: 1234567890,
+      error: 'Delivery failed' // Only for failed events
     }
   }
   ```
@@ -174,7 +181,8 @@ app.post('/webhooks/contiguity', async (req, res) => {
     
     // 3. Handle different event types
     switch (event.type) {
-      case 'text.incoming':
+      case 'text.incoming.sms':
+      case 'text.incoming.mms':
         await handleIncomingText(event);
         break;
         
@@ -182,7 +190,8 @@ app.post('/webhooks/contiguity', async (req, res) => {
         await handleIncomingImessage(event);
         break;
         
-      case 'text.delivery':
+      case 'text.delivery.confirmed':
+      case 'text.delivery.failed':
         await handleDeliveryStatus(event);
         break;
         
