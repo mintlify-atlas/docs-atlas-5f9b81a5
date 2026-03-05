@@ -1,0 +1,122 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Contiguity JavaScript SDK",
+  "projectDescription": "Official TypeScript/JavaScript SDK for Contiguity's communication APIs including SMS, email, iMessage, WhatsApp, and OTP.",
+  "theme": "palm",
+  "primaryColor": "#cb0404",
+  "lightColor": "#f3d2d2",
+  "darkColor": "#e37b84",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "quickstart",
+          "installation"
+        ]
+      },
+      {
+        "group": "Core Features",
+        "pages": [
+          "features/text",
+          "features/email",
+          "features/otp",
+          "features/imessage",
+          "features/whatsapp"
+        ]
+      },
+      {
+        "group": "Resources",
+        "pages": [
+          "resources/lease",
+          "resources/domains",
+          "resources/entitlements",
+          "resources/webhooks"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          "api/client",
+          "api/text",
+          "api/email",
+          "api/otp",
+          "api/imessage",
+          "api/whatsapp",
+          "api/lease",
+          "api/domains",
+          "api/entitlements",
+          "api/webhooks"
+        ]
+      },
+      {
+        "group": "Advanced",
+        "pages": [
+          "advanced/error-handling",
+          "advanced/typescript",
+          "advanced/react-email"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Send SMS/text messages with reactions and conversation history",
+    "Send emails with HTML, text, or React components",
+    "Generate and verify OTP codes with reverse OTP support",
+    "Send iMessage with typing indicators, reactions, and read receipts",
+    "Send WhatsApp messages with typing indicators and reactions",
+    "Phone number leasing and management",
+    "Custom domain registration for email",
+    "Webhook verification and parsing",
+    "TypeScript-first with complete type safety",
+    "React Email integration for templated emails"
+  ],
+  "publicApiSurface": [
+    "Contiguity",
+    "ContiguityConfig",
+    "ContiguityError",
+    "text.send()",
+    "text.reply()",
+    "text.get()",
+    "text.history()",
+    "text.react()",
+    "email.send()",
+    "otp.new()",
+    "otp.verify()",
+    "otp.resend()",
+    "otp.reverse.initiate()",
+    "otp.reverse.verify()",
+    "otp.reverse.cancel()",
+    "imessage.send()",
+    "imessage.reply()",
+    "imessage.typing()",
+    "imessage.get()",
+    "imessage.history()",
+    "imessage.react()",
+    "imessage.read()",
+    "whatsapp.send()",
+    "whatsapp.reply()",
+    "whatsapp.typing()",
+    "whatsapp.react()",
+    "lease.available()",
+    "lease.get()",
+    "lease.create()",
+    "lease.leased()",
+    "lease.details()",
+    "lease.terminate()",
+    "domains.list()",
+    "domains.get()",
+    "domains.register()",
+    "domains.delete()",
+    "entitlements.list()",
+    "entitlements.get()",
+    "entitlements.apply()",
+    "entitlements.revoke()",
+    "webhook.verify()",
+    "webhook.parse()",
+    "verifyWebhookSignature()",
+    "parseWebhookPayload()",
+    "renderReactEmail()"
+  ]
+}
